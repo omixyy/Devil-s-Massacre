@@ -6,6 +6,7 @@ FPS = 50
 TORCHES_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/torch'
 COINS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/coin'
 CHESTS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/chest'
+PLAYERS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/priests_idle/priest3/v2'
 SPRITE_SIZE = 16
 
 with open('maps/level1/elements_pos.json', 'r', encoding='utf8') as jsonf:
@@ -57,6 +58,11 @@ class Chest(AnimatedObject):
         super().__init__([chests, animated_sprites], CHESTS_DIR, x, y, filename)
 
 
+class Player(AnimatedObject):
+    def __init__(self, x, y, filename):
+        super().__init__(animated_sprites, PLAYERS_DIR, x, y, filename)
+
+
 class Castle:
     def __init__(self, foldername,  filename):
         self.map = pytmx.load_pygame(f'maps/{foldername}/{filename}')
@@ -90,6 +96,7 @@ if __name__ == '__main__':
                 Coin(pos_x, pos_y, 'coin')
             elif elem == 'big-chests':
                 Chest(pos_x, pos_y, 'chest')
+    player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:

@@ -102,6 +102,8 @@ if __name__ == '__main__':
             if event.type == pg.QUIT:
                 terminate()
                 running = False
+            elif event.type == pg.KEYDOWN:
+                pass
         castle.render()
         for sprite in animated_sprites:
             sprite.animate()

@@ -5,6 +5,7 @@
     },
     "activeFile": "level1.tmx",
     "expandedProjectPaths": [
+        "."
     ],
     "fileStates": {
         "Dungeon_Tileset.tsx": {
@@ -12,11 +13,11 @@
             "scaleInEditor": 1
         },
         "level1.tmx": {
-            "scale": 1.2480624999999999,
+            "scale": 1,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 400.22034152937056,
-                "y": 319.6955280685062
+                "x": 398.5,
+                "y": 318
             }
         }
     },

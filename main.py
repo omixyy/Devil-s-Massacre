@@ -79,6 +79,41 @@ class Player(AnimatedObject):
         self.rect.x, self.rect.y = self.pos[0], self.pos[1]
         screen.blit(self.image, self.pos)
 
+    def move_by_key(self, keys: pg.key.ScancodeWrapper) -> None:
+        current_pos_rd = self.get_right_down_cell()
+        current_pos_lu = self.get_left_up_cell()
+        current_pos_ru = self.get_right_up_cell()
+        current_pos_ld = self.get_left_down_cell()
+        if keys[pg.K_s]:
+            if castle.is_free(current_pos_rd) and castle.is_free(current_pos_ld) and \
+                    castle.is_free((current_pos_rd[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and \
+                    castle.is_free((current_pos_ld[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
+                self.move_by_delta(dx=0, dy=PLAYER_SPEED)
+        if keys[pg.K_w]:
+            if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and \
+                    castle.is_free((current_pos_ru[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and \
+                    castle.is_free((current_pos_lu[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
+                self.move_by_delta(dx=0, dy=-PLAYER_SPEED)
+        if keys[pg.K_a]:
+            if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and \
+                    castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and \
+                    castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
+                self.move_by_delta(dx=-PLAYER_SPEED, dy=0)
+                self.flip = True
+        if keys[pg.K_d]:
+            if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
+                    castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
+                    castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):
+                self.move_by_delta(dx=PLAYER_SPEED, dy=0)
+                self.flip = False
+
+    def move_by_pointer(self, to: tuple[int, int]) -> None:
+        current_cell = self.get_center_cell()
+        next_pos = castle.find_path_step(current_cell, to)
+        delta_x, delta_y = next_pos[0] - current_cell[0], next_pos[1] - current_cell[1]
+        self.flip = delta_x < 0
+        self.move_by_delta(dx=delta_x * PLAYER_SPEED, dy=delta_y * PLAYER_SPEED)
+
     def get_left_up_cell(self) -> tuple[int, int]:
         return int(self.pos[0] // SPRITE_SIZE), int(self.pos[1] // SPRITE_SIZE)
 
@@ -166,43 +201,6 @@ def add_decor_elements() -> None:
                 Chest(pos_x, pos_y, 'chest')
 
 
-def move_by_key(keys: pg.key.ScancodeWrapper) -> None:
-    current_pos_rd = player.get_right_down_cell()
-    current_pos_lu = player.get_left_up_cell()
-    current_pos_ru = player.get_right_up_cell()
-    current_pos_ld = player.get_left_down_cell()
-    if keys[pg.K_s]:
-        if castle.is_free(current_pos_rd) and castle.is_free(current_pos_ld) and \
-                castle.is_free((current_pos_rd[0], (player.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and \
-                castle.is_free((current_pos_ld[0], (player.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
-            player.move_by_delta(dx=0, dy=PLAYER_SPEED)
-    if keys[pg.K_w]:
-        if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and \
-                castle.is_free((current_pos_ru[0], (player.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and \
-                castle.is_free((current_pos_lu[0], (player.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
-            player.move_by_delta(dx=0, dy=-PLAYER_SPEED)
-    if keys[pg.K_a]:
-        if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and \
-                castle.is_free(((player.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and \
-                castle.is_free(((player.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
-            player.move_by_delta(dx=-PLAYER_SPEED, dy=0)
-            player.flip = True
-    if keys[pg.K_d]:
-        if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
-                castle.is_free(((player.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
-                castle.is_free(((player.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):
-            player.move_by_delta(dx=PLAYER_SPEED, dy=0)
-            player.flip = False
-
-
-def move_by_pointer(to: tuple[int, int], obj: Player) -> None:
-    current_cell = obj.get_center_cell()
-    next_pos = castle.find_path_step(current_cell, to)
-    delta_x, delta_y = next_pos[0] - current_cell[0], next_pos[1] - current_cell[1]
-    obj.flip = delta_x < 0
-    obj.move_by_delta(dx=delta_x * PLAYER_SPEED, dy=delta_y * PLAYER_SPEED)
-
-
 def kill_arrow() -> None:
     for obj in animated_sprites:
         if obj.filename == 'arrow':
@@ -234,10 +232,11 @@ if __name__ == '__main__':
                     move_to = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
                     if len([i for i in animated_sprites if i.filename == 'arrow']):
                         kill_arrow()
-                    Pointer(move_to[0] * SPRITE_SIZE, move_to[1] * SPRITE_SIZE, 'arrow')
-        move_by_key(pressed)
+                    if castle.is_free((move_to[0], move_to[1])):
+                        Pointer(event.pos[0] - 10, event.pos[1] - 15, 'arrow')
+        player.move_by_key(pressed)
         if pointed:
-            move_by_pointer(move_to, player)
+            player.move_by_pointer(move_to)
         if player.get_center_cell() == move_to:
             pointed = False
             kill_arrow()

@@ -102,8 +102,11 @@ class Castle:
     def render(self) -> None:
         for y in range(self.height):
             for x in range(self.width):
-                image = self.map.get_tile_image(x, y, 0)
-                screen.blit(image, (x * SPRITE_SIZE, y * SPRITE_SIZE))
+                wall_image = self.map.get_tile_image(x, y, 0)
+                decoration_image = self.map.get_tile_image(x, y, 1)
+                screen.blit(wall_image, (x * SPRITE_SIZE, y * SPRITE_SIZE))
+                if decoration_image is not None:
+                    screen.blit(decoration_image, (x * SPRITE_SIZE, y * SPRITE_SIZE))
 
     def get_tile_id(self, position) -> int:
         return self.map.tiledgidmap[self.map.get_tile_gid(*position, layer=0)] - 1
@@ -148,18 +151,18 @@ if __name__ == '__main__':
                     castle.is_free((current_pos_rd[0], (player.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and\
                     castle.is_free((current_pos_ld[0], (player.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
                 player.move(dx=0, dy=PLAYER_SPEED)
-        elif pressed[pg.K_w]:
+        if pressed[pg.K_w]:
             if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and\
                     castle.is_free((current_pos_ru[0], (player.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and\
                     castle.is_free((current_pos_lu[0], (player.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
                 player.move(dx=0, dy=-PLAYER_SPEED)
-        elif pressed[pg.K_a]:
+        if pressed[pg.K_a]:
             if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and\
                     castle.is_free(((player.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and\
                     castle.is_free(((player.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
                 player.move(dx=-PLAYER_SPEED, dy=0)
                 player.flip = True
-        elif pressed[pg.K_d]:
+        if pressed[pg.K_d]:
             if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
                     castle.is_free(((player.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
                     castle.is_free(((player.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):

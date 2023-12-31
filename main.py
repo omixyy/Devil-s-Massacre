@@ -140,7 +140,7 @@ class Pointer(AnimatedObject):
 
 
 class Castle:
-    def __init__(self, foldername, filename) -> None:
+    def __init__(self, foldername: str, filename: str) -> None:
         self.map = pytmx.load_pygame(f'maps/{foldername}/{filename}')
         self.height, self.width = self.map.height, self.map.width
         self.walls = [0, 1, 2, 3, 4, 5,
@@ -157,7 +157,7 @@ class Castle:
                 if decoration_image is not None:
                     screen.blit(decoration_image, (x * SPRITE_SIZE, y * SPRITE_SIZE))
 
-    def find_path_step(self, start, target):
+    def find_path_step(self, start: tuple[int, int], target: tuple[int, int]) -> tuple[int, int]:
         inf = 1000
         x, y = start
         distance = [[inf] * self.width for _ in range(self.height)]

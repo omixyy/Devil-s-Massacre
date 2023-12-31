@@ -3,6 +3,7 @@ import sys
 import pytmx
 import json
 
+# Константы
 FPS = 50
 TORCHES_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/torch'
 COINS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/coin'
@@ -11,6 +12,7 @@ PLAYERS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/priests_idl
 SPRITE_SIZE = 16
 PLAYER_SPEED = 3
 
+# Считываем координаты для анимированных декораций из json
 with open('maps/level1/elements_pos.json', 'r', encoding='utf8') as jsonf:
     coordinates = json.load(jsonf)
 
@@ -26,8 +28,8 @@ def terminate():
 
 
 class AnimatedObject(pg.sprite.Sprite):
-    def __init__(self, group, directory, x, y, filename, **kwargs):
-        super().__init__(group)
+    def __init__(self, group: list, directory: str, x: int, y: int, filename: str) -> None:
+        super().__init__(*group)
         self.pos = x, y
         self.flip = False
         self.images = [directory + f'/{filename}_{i}.png' for i in range(1, 5)]
@@ -38,7 +40,7 @@ class AnimatedObject(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         screen.blit(self.image, (x, y))
 
-    def animate(self):
+    def animate(self) -> None:
         tick = pg.time.get_ticks()
         if tick - self.last_tick >= self.animation_delay:
             self.current_image = (self.current_image + 1) % 4
@@ -52,44 +54,44 @@ class AnimatedObject(pg.sprite.Sprite):
 
 
 class Torch(AnimatedObject):
-    def __init__(self, x, y, filename):
+    def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([decorative, animated_sprites], TORCHES_DIR, x, y, filename)
 
 
 class Coin(AnimatedObject):
-    def __init__(self, x, y, filename):
+    def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([coins, animated_sprites], COINS_DIR, x, y, filename)
 
 
 class Chest(AnimatedObject):
-    def __init__(self, x, y, filename):
+    def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([chests, animated_sprites], CHESTS_DIR, x, y, filename)
 
 
 class Player(AnimatedObject):
-    def __init__(self, x, y, filename):
-        super().__init__(animated_sprites, PLAYERS_DIR, x, y, filename)
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__([animated_sprites], PLAYERS_DIR, x, y, filename)
 
-    def move(self, dx=1, dy=1):
+    def move(self, dx=1, dy=1) -> None:
         self.pos = self.pos[0] + dx, self.pos[1] + dy
         self.rect.x, self.rect.y = self.pos[0], self.pos[1]
         screen.blit(self.image, self.pos)
 
-    def get_left_up_cell(self):
+    def get_left_up_cell(self) -> tuple[int, int]:
         return self.pos[0] // SPRITE_SIZE, self.pos[1] // SPRITE_SIZE
 
-    def get_left_down_cell(self):
+    def get_left_down_cell(self) -> tuple[int, int]:
         return self.pos[0] // SPRITE_SIZE, self.pos[1] // SPRITE_SIZE + 1
 
-    def get_right_up_cell(self):
+    def get_right_up_cell(self) -> tuple[int, int]:
         return self.pos[0] // SPRITE_SIZE + 1, self.pos[1] // SPRITE_SIZE
 
-    def get_right_down_cell(self):
+    def get_right_down_cell(self) -> tuple[int, int]:
         return self.pos[0] // SPRITE_SIZE + 1, self.pos[1] // SPRITE_SIZE + 1
 
 
 class Castle:
-    def __init__(self, foldername, filename):
+    def __init__(self, foldername, filename) -> None:
         self.map = pytmx.load_pygame(f'maps/{foldername}/{filename}')
         self.height, self.width = self.map.height, self.map.width
         self.walls = [0, 1, 2, 3, 4, 5,
@@ -97,16 +99,16 @@ class Castle:
                       40, 41, 42, 43, 44, 45,
                       50, 51, 52, 53, 54, 55]
 
-    def render(self):
+    def render(self) -> None:
         for y in range(self.height):
             for x in range(self.width):
                 image = self.map.get_tile_image(x, y, 0)
                 screen.blit(image, (x * SPRITE_SIZE, y * SPRITE_SIZE))
 
-    def get_tile_id(self, position):
+    def get_tile_id(self, position) -> int:
         return self.map.tiledgidmap[self.map.get_tile_gid(*position, layer=0)] - 1
 
-    def is_free(self, position):
+    def is_free(self, position) -> bool:
         return self.get_tile_id(position) not in self.walls
 
 

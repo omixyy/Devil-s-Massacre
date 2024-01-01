@@ -10,6 +10,7 @@ COINS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/coin'
 CHESTS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/chest'
 PLAYERS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/priests_idle/priest3/v2'
 POINTER_DIR = 'tiles/2D Pixel Dungeon Asset Pack/interface'
+FLASKS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/flasks'
 SPRITE_SIZE = 16
 PLAYER_SPEED = 120 / FPS
 
@@ -21,6 +22,7 @@ decorative = pg.sprite.Group()
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
+teleport_flasks = pg.sprite.Group()
 
 
 def terminate() -> None:
@@ -56,18 +58,43 @@ class AnimatedObject(pg.sprite.Sprite):
 
 
 class Torch(AnimatedObject):
+    """
+    Заготовка под будущий класс
+    """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([decorative, animated_sprites], TORCHES_DIR, x, y, filename)
 
 
 class Coin(AnimatedObject):
+    """
+    Заготовка под будущий класс
+    """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([coins, animated_sprites], COINS_DIR, x, y, filename)
 
 
 class Chest(AnimatedObject):
+    """
+    Заготовка под будущий класс
+    """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([chests, animated_sprites], CHESTS_DIR, x, y, filename)
+
+
+class TeleportFlask(AnimatedObject):
+    """
+    Заготовка под будущий класс
+    """
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__([teleport_flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+
+
+class HealFlask(AnimatedObject):
+    """
+    Заготовка под будущий класс
+    """
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__([teleport_flasks, animated_sprites], FLASKS_DIR, x, y, filename)
 
 
 class Player(AnimatedObject):
@@ -116,9 +143,6 @@ class Player(AnimatedObject):
         elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] >
                 castle.get_distance_ox(self.get_left_down_cell())[1]):
             self.collide_vertex = self.get_left_down_cell()
-        elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] ==
-                castle.get_distance_ox(self.get_left_down_cell())[1]):
-            self.collide_vertex = self.get_center_cell()
 
         if (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] <
                 castle.get_distance_ox(self.get_right_down_cell())[0]):
@@ -126,9 +150,6 @@ class Player(AnimatedObject):
         elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] >
                 castle.get_distance_ox(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_right_down_cell()
-        elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] ==
-                castle.get_distance_ox(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_center_cell()
 
         if (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] <
                 castle.get_distance_oy(self.get_right_up_cell())[1]):
@@ -136,9 +157,6 @@ class Player(AnimatedObject):
         elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] >
               castle.get_distance_oy(self.get_right_up_cell())[1]):
             self.collide_vertex = self.get_right_up_cell()
-        elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] ==
-              castle.get_distance_oy(self.get_right_up_cell())[1]):
-            self.collide_vertex = self.get_center_cell()
 
         if (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] <
                 castle.get_distance_oy(self.get_right_down_cell())[0]):
@@ -146,7 +164,7 @@ class Player(AnimatedObject):
         elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] >
                 castle.get_distance_oy(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_left_down_cell()
-        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] ==
+        if (castle.get_distance_oy(self.get_left_down_cell())[0] ==
                 castle.get_distance_oy(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_center_cell()
         next_pos = castle.find_path_step(self.collide_vertex, to_where)
@@ -280,6 +298,10 @@ def add_decor_elements() -> None:
                 Coin(pos_x, pos_y, 'coin')
             elif elem == 'big-chests':
                 Chest(pos_x, pos_y, 'chest')
+            elif elem == 'teleport-flasks':
+                TeleportFlask(pos_x, pos_y, 'flasks_2')
+            elif elem == 'heal-flasks':
+                HealFlask(pos_x, pos_y, 'flasks_4')
 
 
 def kill_arrow() -> None:

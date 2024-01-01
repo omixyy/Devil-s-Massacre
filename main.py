@@ -141,15 +141,21 @@ class Player(AnimatedObject):
                 castle.get_distance_ox(self.get_left_down_cell())[1]):
             self.collide_vertex = self.get_left_up_cell()
         elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] >
-                castle.get_distance_ox(self.get_left_down_cell())[1]):
+              castle.get_distance_ox(self.get_left_down_cell())[1]):
             self.collide_vertex = self.get_left_down_cell()
+        elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] ==
+              castle.get_distance_ox(self.get_left_down_cell())[1]):
+            self.collide_vertex = self.get_center_cell()
 
         if (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] <
                 castle.get_distance_ox(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_right_up_cell()
         elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] >
-                castle.get_distance_ox(self.get_right_down_cell())[0]):
+              castle.get_distance_ox(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_right_down_cell()
+        elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] ==
+              castle.get_distance_ox(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_center_cell()
 
         if (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] <
                 castle.get_distance_oy(self.get_right_up_cell())[1]):
@@ -157,15 +163,18 @@ class Player(AnimatedObject):
         elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] >
               castle.get_distance_oy(self.get_right_up_cell())[1]):
             self.collide_vertex = self.get_right_up_cell()
+        elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] ==
+              castle.get_distance_oy(self.get_right_up_cell())[1]):
+            self.collide_vertex = self.get_center_cell()
 
         if (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] <
                 castle.get_distance_oy(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_right_down_cell()
-        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] >
-                castle.get_distance_oy(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_left_down_cell()
-        if (castle.get_distance_oy(self.get_left_down_cell())[0] ==
-                castle.get_distance_oy(self.get_right_down_cell())[0]):
+        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] >
+              castle.get_distance_oy(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_right_down_cell()
+        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] ==
+              castle.get_distance_oy(self.get_right_down_cell())[0]):
             self.collide_vertex = self.get_center_cell()
         next_pos = castle.find_path_step(self.collide_vertex, to_where)
         dir_x, dir_y = next_pos[0] - self.collide_vertex[0], next_pos[1] - self.collide_vertex[1]
@@ -340,10 +349,9 @@ if __name__ == '__main__':
         player.move_by_key(pressed)
         if pointed:
             player.move_by_pointer(move_to_cell)
-        if move_to_cell is not None:
-            if player.collide_vertex[0] == move_to_cell[0] and player.collide_vertex[1] == move_to_cell[1]:
-                pointed = False
-                kill_arrow()
+        if player.collide_vertex == move_to_cell:
+            pointed = False
+            kill_arrow()
         castle.render()
         for sprite in animated_sprites:
             sprite.animate()

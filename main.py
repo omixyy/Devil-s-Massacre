@@ -11,6 +11,7 @@ CHESTS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/chest'
 PLAYERS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/priests_idle/priest3/v2'
 POINTER_DIR = 'tiles/2D Pixel Dungeon Asset Pack/interface'
 FLASKS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/flasks'
+SLASH_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/Sword Slashes'
 SPRITE_SIZE = 16
 PLAYER_SPEED = 120 / FPS
 
@@ -173,6 +174,9 @@ class HealFlask(AnimatedObject):
 class Player(MovingObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__(x, y, filename)
+        self.current_slash = -1
+        self.slash_tick = pg.time.get_ticks()
+        self.do_slash = False
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
         current_pos_rd = self.get_right_down_cell()
@@ -247,6 +251,24 @@ class Player(MovingObject):
         self.current_dir = (dir_x, dir_y)
         self.flip = dir_x < 0
         self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
+
+    def slash(self, foldername):
+        if self.do_slash:
+            images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, 7)]
+            tick = pg.time.get_ticks()
+            image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+            if tick - self.slash_tick >= self.animation_delay:
+                self.current_slash = (self.current_slash + 1) % 6
+                image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+                self.slash_tick = pg.time.get_ticks()
+            if not self.flip:
+                screen.blit(image, (self.pos[0], self.pos[1] - 10))
+            else:
+                screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
+                            (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
+        if self.current_slash == 5:
+            self.current_slash = -1
+            self.do_slash = False
 
 
 class Pointer(AnimatedObject):
@@ -375,6 +397,7 @@ if __name__ == '__main__':
     running = True
     pointed = False
     move_to_cell = None
+    do_slash = False
     clock = pg.time.Clock()
     castle.render()
     add_decor_elements()
@@ -386,6 +409,9 @@ if __name__ == '__main__':
                 terminate()
                 running = False
             if event.type == pg.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    player.do_slash = True
+                    do_slash = True
                 if event.button == 3:
                     pointed = True
                     move_to_cell = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
@@ -400,6 +426,8 @@ if __name__ == '__main__':
             pointed = False
             kill_arrow()
         castle.render()
+        if player.do_slash:
+            player.slash('Blue Slash Thin')
         for sprite in animated_sprites:
             sprite.animate()
         for chest in chests:

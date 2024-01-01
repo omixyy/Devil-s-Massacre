@@ -67,6 +67,40 @@ class AnimatedObject(pg.sprite.Sprite):
             screen.blit(self.image, self.pos)
 
 
+class MovingObject(AnimatedObject):
+    """
+    Базовый класс для объектов, способных двигаться (игрок, враги)
+    """
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__([animated_sprites], PLAYERS_DIR, x, y, filename)
+        self.current_dir = (0, 0)
+        self.collide_vertex = self.get_center_cell()
+
+    def move_by_delta(self, dx=1.0, dy=1.0) -> None:
+        self.pos = self.pos[0] + dx, self.pos[1] + dy
+        self.rect.x, self.rect.y = self.pos[0], self.pos[1]
+        screen.blit(self.image, self.pos)
+
+    def get_left_up_cell(self) -> tuple[int, int]:
+        return int(self.pos[0] // SPRITE_SIZE), int(self.pos[1] // SPRITE_SIZE)
+
+    def get_left_down_cell(self) -> tuple[int, int]:
+        return int(self.pos[0] // SPRITE_SIZE), int(self.pos[1] // SPRITE_SIZE + 1)
+
+    def get_right_up_cell(self) -> tuple[int, int]:
+        return int(self.pos[0] // SPRITE_SIZE + 1), int(self.pos[1] // SPRITE_SIZE)
+
+    def get_right_down_cell(self) -> tuple[int, int]:
+        return int(self.pos[0] // SPRITE_SIZE + 1), int(self.pos[1] // SPRITE_SIZE + 1)
+
+    def get_center_cell(self) -> tuple[int, int]:
+        return (int((self.pos[0] + SPRITE_SIZE // 2) // SPRITE_SIZE),
+                int((self.pos[1] + SPRITE_SIZE // 2) // SPRITE_SIZE))
+
+    def get_center_coordinates(self) -> tuple[float, float]:
+        return self.pos[0] + SPRITE_SIZE / 2, self.pos[1] + SPRITE_SIZE / 2
+
+
 class Torch(AnimatedObject):
     """
     Заготовка под будущий класс
@@ -136,16 +170,9 @@ class HealFlask(AnimatedObject):
             self.do_animation = False
 
 
-class Player(AnimatedObject):
+class Player(MovingObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([animated_sprites], PLAYERS_DIR, x, y, filename)
-        self.current_dir = (0, 0)
-        self.collide_vertex = self.get_center_cell()
-
-    def move_by_delta(self, dx=1.0, dy=1.0) -> None:
-        self.pos = self.pos[0] + dx, self.pos[1] + dy
-        self.rect.x, self.rect.y = self.pos[0], self.pos[1]
-        screen.blit(self.image, self.pos)
+        super().__init__(x, y, filename)
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
         current_pos_rd = self.get_right_down_cell()
@@ -220,25 +247,6 @@ class Player(AnimatedObject):
         self.current_dir = (dir_x, dir_y)
         self.flip = dir_x < 0
         self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
-
-    def get_left_up_cell(self) -> tuple[int, int]:
-        return int(self.pos[0] // SPRITE_SIZE), int(self.pos[1] // SPRITE_SIZE)
-
-    def get_left_down_cell(self) -> tuple[int, int]:
-        return int(self.pos[0] // SPRITE_SIZE), int(self.pos[1] // SPRITE_SIZE + 1)
-
-    def get_right_up_cell(self) -> tuple[int, int]:
-        return int(self.pos[0] // SPRITE_SIZE + 1), int(self.pos[1] // SPRITE_SIZE)
-
-    def get_right_down_cell(self) -> tuple[int, int]:
-        return int(self.pos[0] // SPRITE_SIZE + 1), int(self.pos[1] // SPRITE_SIZE + 1)
-
-    def get_center_cell(self) -> tuple[int, int]:
-        return (int((self.pos[0] + SPRITE_SIZE // 2) // SPRITE_SIZE),
-                int((self.pos[1] + SPRITE_SIZE // 2) // SPRITE_SIZE))
-
-    def get_center_coordinates(self) -> tuple[float, float]:
-        return self.pos[0] + SPRITE_SIZE / 2, self.pos[1] + SPRITE_SIZE / 2
 
 
 class Pointer(AnimatedObject):

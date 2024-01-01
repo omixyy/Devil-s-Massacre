@@ -73,6 +73,8 @@ class Chest(AnimatedObject):
 class Player(AnimatedObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], PLAYERS_DIR, x, y, filename)
+        self.current_dir = (0, 0)
+        self.collide_vertex = self.get_center_cell()
 
     def move_by_delta(self, dx=1.0, dy=1.0) -> None:
         self.pos = self.pos[0] + dx, self.pos[1] + dy
@@ -107,12 +109,51 @@ class Player(AnimatedObject):
                 self.move_by_delta(dx=PLAYER_SPEED, dy=0)
                 self.flip = False
 
-    def move_by_pointer(self, to: tuple[int, int]) -> None:
-        current_cell = self.get_center_cell()
-        next_pos = castle.find_path_step(current_cell, to)
-        delta_x, delta_y = next_pos[0] - current_cell[0], next_pos[1] - current_cell[1]
-        self.flip = delta_x < 0
-        self.move_by_delta(dx=delta_x * PLAYER_SPEED, dy=delta_y * PLAYER_SPEED)
+    def move_by_pointer(self, to_where: tuple[int, int]) -> None:
+        if (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] <
+                castle.get_distance_ox(self.get_left_down_cell())[1]):
+            self.collide_vertex = self.get_left_up_cell()
+        elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] >
+                castle.get_distance_ox(self.get_left_down_cell())[1]):
+            self.collide_vertex = self.get_left_down_cell()
+        elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] ==
+                castle.get_distance_ox(self.get_left_down_cell())[1]):
+            self.collide_vertex = self.get_center_cell()
+
+        if (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] <
+                castle.get_distance_ox(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_right_up_cell()
+        elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] >
+                castle.get_distance_ox(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_right_down_cell()
+        elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] ==
+                castle.get_distance_ox(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_center_cell()
+
+        if (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] <
+                castle.get_distance_oy(self.get_right_up_cell())[1]):
+            self.collide_vertex = self.get_left_up_cell()
+        elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] >
+              castle.get_distance_oy(self.get_right_up_cell())[1]):
+            self.collide_vertex = self.get_right_up_cell()
+        elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] ==
+              castle.get_distance_oy(self.get_right_up_cell())[1]):
+            self.collide_vertex = self.get_center_cell()
+
+        if (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] <
+                castle.get_distance_oy(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_right_down_cell()
+        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] >
+                castle.get_distance_oy(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_left_down_cell()
+        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] ==
+                castle.get_distance_oy(self.get_right_down_cell())[0]):
+            self.collide_vertex = self.get_center_cell()
+        next_pos = castle.find_path_step(self.collide_vertex, to_where)
+        dir_x, dir_y = next_pos[0] - self.collide_vertex[0], next_pos[1] - self.collide_vertex[1]
+        self.current_dir = (dir_x, dir_y)
+        self.flip = dir_x < 0
+        self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
 
     def get_left_up_cell(self) -> tuple[int, int]:
         return int(self.pos[0] // SPRITE_SIZE), int(self.pos[1] // SPRITE_SIZE)
@@ -162,7 +203,7 @@ class Castle:
         x, y = start
         distance = [[inf] * self.width for _ in range(self.height)]
         distance[y][x] = 0
-        prev = [[None] * self.width for _ in range(self.height)]
+        prev = [[(None, None)] * self.width for _ in range(self.height)]
         queue = [(x, y)]
         while queue:
             x, y = queue.pop(0)
@@ -185,6 +226,46 @@ class Castle:
 
     def is_free(self, position) -> bool:
         return self.get_tile_id(position) not in self.walls
+
+    def get_distance_oy(self, position: tuple[int, int]) -> tuple[int, int]:
+        dist_up, dist_down = -1, -1
+        meet_player = False
+        for i in range(self.height):
+            if (position[0], i) == position:
+                meet_player = True
+            if not meet_player:
+                if not self.is_free((position[0], i)):
+                    dist_up = 0
+                else:
+                    dist_up += 1
+            else:
+                if (position[0], i) == position:
+                    dist_down = 0
+                elif self.is_free((position[0], i)):
+                    dist_down += 1
+                else:
+                    break
+        return dist_up, dist_down
+
+    def get_distance_ox(self, position: tuple[int, int]) -> tuple[int, int]:
+        dist_right, dist_left = -1, -1
+        meet_player = False
+        for i in range(self.width):
+            if (i, position[1]) == position:
+                meet_player = True
+            if not meet_player:
+                if not self.is_free((i, position[1])):
+                    dist_left = 0
+                else:
+                    dist_left += 1
+            else:
+                if (i, position[1]) == position:
+                    dist_right = 0
+                elif self.is_free((i, position[1])):
+                    dist_right += 1
+                else:
+                    break
+        return dist_left, dist_right
 
 
 def add_decor_elements() -> None:
@@ -215,7 +296,7 @@ if __name__ == '__main__':
     castle = Castle('level1', 'level1.tmx')
     running = True
     pointed = False
-    move_to = None
+    move_to_cell = None
     clock = pg.time.Clock()
     castle.render()
     add_decor_elements()
@@ -229,17 +310,18 @@ if __name__ == '__main__':
             if event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 3:
                     pointed = True
-                    move_to = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
+                    move_to_cell = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
                     if len([i for i in animated_sprites if i.filename == 'arrow']):
                         kill_arrow()
-                    if castle.is_free((move_to[0], move_to[1])):
+                    if castle.is_free((move_to_cell[0], move_to_cell[1])):
                         Pointer(event.pos[0] - 10, event.pos[1] - 15, 'arrow')
         player.move_by_key(pressed)
         if pointed:
-            player.move_by_pointer(move_to)
-        if player.get_center_cell() == move_to:
-            pointed = False
-            kill_arrow()
+            player.move_by_pointer(move_to_cell)
+        if move_to_cell is not None:
+            if player.collide_vertex[0] == move_to_cell[0] and player.collide_vertex[1] == move_to_cell[1]:
+                pointed = False
+                kill_arrow()
         castle.render()
         for sprite in animated_sprites:
             sprite.animate()

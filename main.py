@@ -137,45 +137,45 @@ class Player(AnimatedObject):
                 self.flip = False
 
     def move_by_pointer(self, to_where: tuple[int, int]) -> None:
-        if (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] <
-                castle.get_distance_ox(self.get_left_down_cell())[1]):
-            self.collide_vertex = self.get_left_up_cell()
-        elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] >
-              castle.get_distance_ox(self.get_left_down_cell())[1]):
-            self.collide_vertex = self.get_left_down_cell()
-        elif (self.current_dir[0] > 0 and castle.get_distance_ox(self.get_left_up_cell())[1] ==
-              castle.get_distance_ox(self.get_left_down_cell())[1]):
-            self.collide_vertex = self.get_center_cell()
+        if self.current_dir[0] > 0:
+            if (castle.get_distance_ox(self.get_left_up_cell())[1] <
+                    castle.get_distance_ox(self.get_left_down_cell())[1]):
+                self.collide_vertex = self.get_left_up_cell()
+            elif (castle.get_distance_ox(self.get_left_up_cell())[1] >
+                  castle.get_distance_ox(self.get_left_down_cell())[1]):
+                self.collide_vertex = self.get_left_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
 
-        if (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] <
-                castle.get_distance_ox(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_right_up_cell()
-        elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] >
-              castle.get_distance_ox(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_right_down_cell()
-        elif (self.current_dir[0] < 0 and castle.get_distance_ox(self.get_right_up_cell())[0] ==
-              castle.get_distance_ox(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_center_cell()
+        if self.current_dir[0] < 0:
+            if (castle.get_distance_ox(self.get_right_up_cell())[0] <
+                    castle.get_distance_ox(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_up_cell()
+            elif (castle.get_distance_ox(self.get_right_up_cell())[0] >
+                  castle.get_distance_ox(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
 
-        if (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] <
-                castle.get_distance_oy(self.get_right_up_cell())[1]):
-            self.collide_vertex = self.get_left_up_cell()
-        elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] >
-              castle.get_distance_oy(self.get_right_up_cell())[1]):
-            self.collide_vertex = self.get_right_up_cell()
-        elif (self.current_dir[1] > 0 and castle.get_distance_oy(self.get_left_up_cell())[1] ==
-              castle.get_distance_oy(self.get_right_up_cell())[1]):
-            self.collide_vertex = self.get_center_cell()
+        if self.current_dir[1] > 0:
+            if (castle.get_distance_oy(self.get_left_up_cell())[1] <
+                    castle.get_distance_oy(self.get_right_up_cell())[1]):
+                self.collide_vertex = self.get_left_up_cell()
+            elif (castle.get_distance_oy(self.get_left_up_cell())[1] >
+                  castle.get_distance_oy(self.get_right_up_cell())[1]):
+                self.collide_vertex = self.get_right_up_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
 
-        if (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] <
-                castle.get_distance_oy(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_left_down_cell()
-        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] >
-              castle.get_distance_oy(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_right_down_cell()
-        elif (self.current_dir[1] < 0 and castle.get_distance_oy(self.get_left_down_cell())[0] ==
-              castle.get_distance_oy(self.get_right_down_cell())[0]):
-            self.collide_vertex = self.get_center_cell()
+        if self.current_dir[1] < 0:
+            if (castle.get_distance_oy(self.get_left_down_cell())[0] <
+                    castle.get_distance_oy(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_left_down_cell()
+            elif (castle.get_distance_oy(self.get_left_down_cell())[0] >
+                  castle.get_distance_oy(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
         next_pos = castle.find_path_step(self.collide_vertex, to_where)
         dir_x, dir_y = next_pos[0] - self.collide_vertex[0], next_pos[1] - self.collide_vertex[1]
         self.current_dir = (dir_x, dir_y)

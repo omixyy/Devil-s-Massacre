@@ -32,6 +32,9 @@ def terminate() -> None:
 
 
 class AnimatedObject(pg.sprite.Sprite):
+    """
+    Базовый класс для всех анимированных объектов
+    """
     def __init__(self, group: list, directory: str, x: int, y: int, filename: str) -> None:
         super().__init__(*group)
         self.filename = filename
@@ -79,7 +82,7 @@ class Coin(AnimatedObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([coins, animated_sprites], COINS_DIR, x, y, filename)
 
-    def update(self):
+    def update(self) -> None:
         if pg.sprite.collide_mask(self, player):
             self.do_blit = False
             self.do_animation = False
@@ -93,14 +96,14 @@ class Chest(AnimatedObject):
         super().__init__([chests, animated_sprites, can_be_opened, can_be_opened], CHESTS_DIR, x, y, filename)
         self.opened = False
 
-    def update(self):
+    def update(self) -> None:
         if pg.sprite.collide_mask(self, player) and not self.opened:
             self.animate_opening()
             self.opened = True
         if self.images[self.current_image] == CHESTS_DIR + '/' + 'chest_open_4.png':
             self.do_animation = False
 
-    def animate_opening(self):
+    def animate_opening(self) -> None:
         self.images = [CHESTS_DIR + f'/chest_open_{i}.png' for i in range(1, 5)]
         self.current_image = 0
         self.image = pg.image.load(self.images[self.current_image])
@@ -114,7 +117,7 @@ class TeleportFlask(AnimatedObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([flasks, animated_sprites], FLASKS_DIR, x, y, filename)
 
-    def update(self):
+    def update(self) -> None:
         if pg.sprite.collide_mask(self, player):
             self.do_blit = False
             self.do_animation = False
@@ -127,7 +130,7 @@ class HealFlask(AnimatedObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([flasks, animated_sprites], FLASKS_DIR, x, y, filename)
 
-    def update(self):
+    def update(self) -> None:
         if pg.sprite.collide_mask(self, player):
             self.do_blit = False
             self.do_animation = False

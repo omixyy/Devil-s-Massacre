@@ -22,7 +22,8 @@ decorative = pg.sprite.Group()
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
-teleport_flasks = pg.sprite.Group()
+flasks = pg.sprite.Group()
+can_be_opened = pg.sprite.Group()
 
 
 def terminate() -> None:
@@ -36,25 +37,31 @@ class AnimatedObject(pg.sprite.Sprite):
         self.filename = filename
         self.pos = x, y
         self.flip = False
+        self.do_animation = True
+        self.do_blit = True
         self.images = [directory + f'/{filename}_{i}.png' for i in range(1, 5)]
         self.current_image = 0
         self.image = pg.image.load(self.images[self.current_image])
+        self.mask = pg.mask.from_surface(self.image)
         self.last_tick = pg.time.get_ticks()
         self.animation_delay = 100
         self.rect = self.image.get_rect()
+        self.rect.topleft = self.pos
         screen.blit(self.image, (x, y))
 
     def animate(self) -> None:
-        tick = pg.time.get_ticks()
-        if tick - self.last_tick >= self.animation_delay:
-            self.current_image = (self.current_image + 1) % 4
-            if not self.flip:
-                self.image = pg.image.load(self.images[self.current_image])
-            else:
-                self.image = pg.transform.flip(
-                    pg.image.load(self.images[self.current_image]), flip_x=True, flip_y=False)
-            self.last_tick = pg.time.get_ticks()
-        screen.blit(self.image, self.pos)
+        if self.do_animation:
+            tick = pg.time.get_ticks()
+            if tick - self.last_tick >= self.animation_delay:
+                self.current_image = (self.current_image + 1) % 4
+                if not self.flip:
+                    self.image = pg.image.load(self.images[self.current_image])
+                else:
+                    self.image = pg.transform.flip(
+                        pg.image.load(self.images[self.current_image]), flip_x=True, flip_y=False)
+                self.last_tick = pg.time.get_ticks()
+        if self.do_blit:
+            screen.blit(self.image, self.pos)
 
 
 class Torch(AnimatedObject):
@@ -72,13 +79,32 @@ class Coin(AnimatedObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([coins, animated_sprites], COINS_DIR, x, y, filename)
 
+    def update(self):
+        if pg.sprite.collide_mask(self, player):
+            self.do_blit = False
+            self.do_animation = False
+
 
 class Chest(AnimatedObject):
     """
     Заготовка под будущий класс
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([chests, animated_sprites], CHESTS_DIR, x, y, filename)
+        super().__init__([chests, animated_sprites, can_be_opened, can_be_opened], CHESTS_DIR, x, y, filename)
+        self.opened = False
+
+    def update(self):
+        if pg.sprite.collide_mask(self, player) and not self.opened:
+            self.animate_opening()
+            self.opened = True
+        if self.images[self.current_image] == CHESTS_DIR + '/' + 'chest_open_4.png':
+            self.do_animation = False
+
+    def animate_opening(self):
+        self.images = [CHESTS_DIR + f'/chest_open_{i}.png' for i in range(1, 5)]
+        self.current_image = 0
+        self.image = pg.image.load(self.images[self.current_image])
+        self.animate()
 
 
 class TeleportFlask(AnimatedObject):
@@ -86,7 +112,12 @@ class TeleportFlask(AnimatedObject):
     Заготовка под будущий класс
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([teleport_flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+        super().__init__([flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+
+    def update(self):
+        if pg.sprite.collide_mask(self, player):
+            self.do_blit = False
+            self.do_animation = False
 
 
 class HealFlask(AnimatedObject):
@@ -94,7 +125,12 @@ class HealFlask(AnimatedObject):
     Заготовка под будущий класс
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([teleport_flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+        super().__init__([flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+
+    def update(self):
+        if pg.sprite.collide_mask(self, player):
+            self.do_blit = False
+            self.do_animation = False
 
 
 class Player(AnimatedObject):
@@ -108,7 +144,7 @@ class Player(AnimatedObject):
         self.rect.x, self.rect.y = self.pos[0], self.pos[1]
         screen.blit(self.image, self.pos)
 
-    def move_by_key(self, keys: pg.key.ScancodeWrapper) -> None:
+    def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
         current_pos_rd = self.get_right_down_cell()
         current_pos_lu = self.get_left_up_cell()
         current_pos_ru = self.get_right_up_cell()
@@ -346,7 +382,7 @@ if __name__ == '__main__':
                         kill_arrow()
                     if castle.is_free((move_to_cell[0], move_to_cell[1])):
                         Pointer(event.pos[0] - 10, event.pos[1] - 15, 'arrow')
-        player.move_by_key(pressed)
+        player.handle_keypress(pressed)
         if pointed:
             player.move_by_pointer(move_to_cell)
         if player.collide_vertex == move_to_cell:
@@ -355,6 +391,12 @@ if __name__ == '__main__':
         castle.render()
         for sprite in animated_sprites:
             sprite.animate()
+        for chest in chests:
+            chest.update()
+        for coin in coins:
+            coin.update()
+        for flask in flasks:
+            flask.update()
         pg.display.flip()
         clock.tick(FPS)
         screen.fill(pg.Color('black'))

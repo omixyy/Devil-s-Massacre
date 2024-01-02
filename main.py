@@ -13,6 +13,7 @@ INTERFACE_DIR = 'tiles/2D Pixel Dungeon Asset Pack/interface'
 FLASKS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/flasks'
 SLASH_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/Sword Slashes'
 ITEMS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/RPG Items 16x16 Pack 1'
+KEYS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/keys'
 SPRITE_SIZE = 16
 PLAYER_SPEED = 120 / FPS
 
@@ -26,6 +27,8 @@ coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
 flasks = pg.sprite.Group()
 can_be_opened = pg.sprite.Group()
+keys_group = pg.sprite.Group()
+can_be_picked_up = pg.sprite.Group()
 
 
 class AnimatedObject(pg.sprite.Sprite):
@@ -105,13 +108,30 @@ class Torch(AnimatedObject):
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([decorative, animated_sprites], TORCHES_DIR, x, y, filename)
 
+    def update(self) -> None:
+        if pg.sprite.collide_mask(self, player):
+            self.do_blit = False
+            self.do_animation = False
+            player.inventory.add(self, TORCHES_DIR)
+
+
+class Key(AnimatedObject):
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__([keys_group, animated_sprites, can_be_picked_up], KEYS_DIR, x, y, filename)
+
+    def update(self) -> None:
+        if pg.sprite.collide_mask(self, player):
+            self.do_blit = False
+            self.do_animation = False
+            player.inventory.add(self, KEYS_DIR)
+
 
 class Coin(AnimatedObject):
     """
     Заготовка под будущий класс
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([coins, animated_sprites], COINS_DIR, x, y, filename)
+        super().__init__([coins, animated_sprites, can_be_picked_up], COINS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player):
@@ -147,7 +167,7 @@ class TeleportFlask(AnimatedObject):
     Заготовка под будущий класс
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+        super().__init__([flasks, animated_sprites, can_be_picked_up], FLASKS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player):
@@ -161,7 +181,7 @@ class HealFlask(AnimatedObject):
     Заготовка под будущий класс
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([flasks, animated_sprites], FLASKS_DIR, x, y, filename)
+        super().__init__([flasks, animated_sprites, can_be_picked_up], FLASKS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player):
@@ -176,7 +196,7 @@ class Player(MovingObject):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
-        self.health = 4
+        self.health = 5
         self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
@@ -253,7 +273,7 @@ class Player(MovingObject):
         self.flip = dir_x < 0
         self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
 
-    def slash(self, foldername, frames=6):
+    def slash(self, foldername: str, frames=6) -> None:
         slash_delay = self.animation_delay
         if 'Group' in foldername:
             slash_delay = 150
@@ -322,7 +342,7 @@ class Inventory:
         elif self.y_pos <= HEIGHT and not self.mouse_collide:
             self.y_pos += PLAYER_SPEED
 
-    def add(self, obj, direct):
+    def add(self, obj: AnimatedObject, direct: str) -> None:
         for cell in range(len(self.items_images)):
             file = direct + '/' + obj.filename + '_1.png'
             if not self.items_images[cell] and not any([file in i for i in self.items_images]):
@@ -442,6 +462,8 @@ def add_decor_elements() -> None:
                 TeleportFlask(pos_x, pos_y, 'flasks_2')
             elif elem == 'heal-flasks':
                 HealFlask(pos_x, pos_y, 'flasks_4')
+            elif elem == 'key':
+                Key(pos_x, pos_y, 'keys_2')
 
 
 def kill_arrow() -> None:
@@ -542,10 +564,8 @@ if __name__ == '__main__':
             sprite.animate()
         for chest in chests:
             chest.update()
-        for coin in coins:
-            coin.update()
-        for flask in flasks:
-            flask.update()
+        for sprite in can_be_picked_up:
+            sprite.update()
         player.inventory.draw()
         player.inventory.update()
         pg.display.flip()

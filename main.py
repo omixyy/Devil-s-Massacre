@@ -9,9 +9,10 @@ TORCHES_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/torch'
 COINS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/coin'
 CHESTS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/chest'
 PLAYERS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/priests_idle/priest3/v2'
-POINTER_DIR = 'tiles/2D Pixel Dungeon Asset Pack/interface'
+INTERFACE_DIR = 'tiles/2D Pixel Dungeon Asset Pack/interface'
 FLASKS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/flasks'
 SLASH_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/Sword Slashes'
+ITEMS_DIR = 'tiles/2D Pixel Dungeon Asset Pack/items and trap_animation/RPG Items 16x16 Pack 1'
 SPRITE_SIZE = 16
 PLAYER_SPEED = 120 / FPS
 
@@ -25,11 +26,6 @@ coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
 flasks = pg.sprite.Group()
 can_be_opened = pg.sprite.Group()
-
-
-def terminate() -> None:
-    pg.quit()
-    sys.exit()
 
 
 class AnimatedObject(pg.sprite.Sprite):
@@ -121,6 +117,7 @@ class Coin(AnimatedObject):
         if pg.sprite.collide_mask(self, player):
             self.do_blit = False
             self.do_animation = False
+            player.inventory.add(self, COINS_DIR)
 
 
 class Chest(AnimatedObject):
@@ -156,6 +153,7 @@ class TeleportFlask(AnimatedObject):
         if pg.sprite.collide_mask(self, player):
             self.do_blit = False
             self.do_animation = False
+            player.inventory.add(self, FLASKS_DIR)
 
 
 class HealFlask(AnimatedObject):
@@ -169,6 +167,7 @@ class HealFlask(AnimatedObject):
         if pg.sprite.collide_mask(self, player):
             self.do_blit = False
             self.do_animation = False
+            player.inventory.add(self, FLASKS_DIR)
 
 
 class Player(MovingObject):
@@ -177,6 +176,7 @@ class Player(MovingObject):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
+        self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
         current_pos_rd = self.get_right_down_cell()
@@ -273,7 +273,48 @@ class Player(MovingObject):
 
 class Pointer(AnimatedObject):
     def __init__(self, x: int, y: int, filename) -> None:
-        super().__init__([animated_sprites, decorative], POINTER_DIR, x, y, filename)
+        super().__init__([animated_sprites, decorative], INTERFACE_DIR, x, y, filename)
+
+
+class Inventory:
+    def __init__(self):
+        self.items = [[ITEMS_DIR + '/' + 'sword12.png'], [], [], []]
+        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/' + 'inventory.png'), (170, 50))
+        self.y_pos = HEIGHT
+        self.mouse_collide = False
+
+    def draw(self) -> None:
+        screen.blit(self.image, (315, self.y_pos))
+        for ind, cell in enumerate(self.items):
+            for item in cell:
+                item_image = pg.transform.scale(pg.image.load(item), (30, 30))
+                screen.blit(item_image, (330 + item_image.get_width() * ind + 7 * ind, self.y_pos + 15))
+                amount = len(cell)
+                if amount > 1:
+                    font = pg.font.Font(None, 15)
+                    rendered = font.render(f'x{amount}', 1, pg.Color('white'))
+                    screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 37))
+
+    def update(self) -> None:
+        if self.mouse_collide and self.y_pos >= 590:
+            self.y_pos -= PLAYER_SPEED
+        elif self.y_pos <= HEIGHT and not self.mouse_collide:
+            self.y_pos += PLAYER_SPEED
+
+    def add(self, obj, direct):
+        for cell in range(len(self.items)):
+            file = direct + '/' + obj.filename + '_1.png'
+            if not self.items[cell] and not any([file in i for i in self.items]):
+                self.items[cell].append(file)
+                break
+            elif self.items[cell] and self.items[cell][0] == file and len(self.items[cell]) < 4:
+                self.items[cell].append(file)
+        for i in coins:
+            if i is obj:
+                i.kill()
+        for i in animated_sprites:
+            if i is obj:
+                i.kill()
 
 
 class Castle:
@@ -388,12 +429,18 @@ def kill_arrow() -> None:
             obj.kill()
 
 
+def terminate() -> None:
+    pg.quit()
+    sys.exit()
+
+
 if __name__ == '__main__':
     pg.init()
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
     screen.fill(pg.Color('black'))
     castle = Castle('level1', 'level1.tmx')
+    lower_rect = pg.Rect(0, 590, 800, 50)
     running = True
     pointed = False
     shift_pressed = False
@@ -408,8 +455,8 @@ if __name__ == '__main__':
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                terminate()
                 running = False
+                terminate()
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_LSHIFT:
                     shift_pressed = True
@@ -437,6 +484,8 @@ if __name__ == '__main__':
                     shift_pressed = False
                 elif event.key == pg.K_LCTRL:
                     ctrl_pressed = False
+            elif event.type == pg.MOUSEMOTION:
+                player.inventory.mouse_collide = lower_rect.collidepoint(event.pos)
         player.handle_keypress(pressed)
         if pointed:
             player.move_by_pointer(move_to_cell)
@@ -457,6 +506,8 @@ if __name__ == '__main__':
             coin.update()
         for flask in flasks:
             flask.update()
+        player.inventory.draw()
+        player.inventory.update()
         pg.display.flip()
         clock.tick(FPS)
         screen.fill(pg.Color('black'))

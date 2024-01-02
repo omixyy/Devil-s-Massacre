@@ -132,7 +132,7 @@ class Chest(AnimatedObject):
         if pg.sprite.collide_mask(self, player) and not self.opened:
             self.animate_opening()
             self.opened = True
-        if self.images[self.current_image] == CHESTS_DIR + '/' + 'chest_open_4.png':
+        if self.images[self.current_image] == CHESTS_DIR + '/chest_open_4.png':
             self.do_animation = False
 
     def animate_opening(self) -> None:
@@ -176,7 +176,7 @@ class Player(MovingObject):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
-        self.health = 5
+        self.health = 4
         self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
@@ -282,6 +282,7 @@ class Player(MovingObject):
         items = self.inventory.items_images[self.inventory.current_item]
         if items and 'flasks_4' in items[0]:
             self.health += 1 if self.health < 5 else 0
+            del self.inventory.items_images[self.inventory.current_item]
 
 
 class Pointer(AnimatedObject):
@@ -291,14 +292,17 @@ class Pointer(AnimatedObject):
 
 class Inventory:
     def __init__(self) -> None:
-        self.items_images = [[ITEMS_DIR + '/' + 'sword12.png'], [], [], []]
-        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/' + 'inventory.png'), (170, 50))
+        self.items_images = [[ITEMS_DIR + '/sword12.png'], [], [], []]
+        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory.png'), (170, 50))
+        self.health_image = pg.image.load(INTERFACE_DIR + '/heart_32x32.png')
         self.y_pos = HEIGHT
         self.mouse_collide = False
         self.current_item = 0
 
     def draw(self) -> None:
         screen.blit(self.image, (315, self.y_pos))
+        for i in range(player.health):
+            screen.blit(self.health_image, (20 + 50 * i, self.y_pos + 10))
         for ind, cell in enumerate(self.items_images):
             for item in cell:
                 item_image = pg.transform.scale(pg.image.load(item), (30, 30))
@@ -308,7 +312,7 @@ class Inventory:
                     font = pg.font.Font(None, 15)
                     rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                     screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 35))
-        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/' + 'square_right_2.png'), (33, 33))
+        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/square_right_2.png'), (33, 33))
         screen.blit(cur_item_mark, (330 + cur_item_mark.get_width() *
                                     self.current_item + 3 * self.current_item, self.y_pos + 15))
 
@@ -458,6 +462,7 @@ if __name__ == '__main__':
     screen.fill(pg.Color('black'))
     castle = Castle('level1', 'level1.tmx')
     lower_rect = pg.Rect(0, 590, 800, 50)
+    inventory_rect = pg.Rect(315, 590, 170, 50)
     running = True
     pointed = False
     shift_pressed = False
@@ -488,19 +493,25 @@ if __name__ == '__main__':
                 elif event.key == pg.K_4:
                     player.inventory.current_item = 3
             elif event.type == pg.MOUSEBUTTONDOWN:
-                if (event.button == 1 and not shift_pressed and not ctrl_pressed and
-                        not player.do_slash and player.inventory.current_item == 0):
-                    player.do_slash = True
-                    slash_name = 'Blue Slash Thin'
-                if event.button == 1 and shift_pressed and not player.do_slash and player.inventory.current_item == 0:
-                    player.do_slash = True
-                    slash_name = 'Blue Slash Wide'
-                if event.button == 1 and ctrl_pressed and not player.do_slash and player.inventory.current_item == 0:
-                    player.do_slash = True
-                    slash_name = 'Blue Group Slashes'
-                if event.button == 1 and player.inventory.current_item != 0:
-                    player.use_current_item()
-                if event.button == 3:
+                if event.button == 1:
+                    mouse_x, _ = event.pos
+                    if inventory_rect.collidepoint(event.pos):
+                        cur = (mouse_x - 330) // 36
+                        if 0 <= cur <= 3:
+                            player.inventory.current_item = cur
+                    elif (not shift_pressed and not ctrl_pressed and
+                            not player.do_slash and player.inventory.current_item == 0):
+                        player.do_slash = True
+                        slash_name = 'Blue Slash Thin'
+                    elif shift_pressed and not player.do_slash and player.inventory.current_item == 0:
+                        player.do_slash = True
+                        slash_name = 'Blue Slash Wide'
+                    elif ctrl_pressed and not player.do_slash and player.inventory.current_item == 0:
+                        player.do_slash = True
+                        slash_name = 'Blue Group Slashes'
+                    elif player.inventory.current_item != 0:
+                        player.use_current_item()
+                elif event.button == 3:
                     pointed = True
                     move_to_cell = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
                     if len([i for i in animated_sprites if i.filename == 'arrow']):
@@ -514,9 +525,10 @@ if __name__ == '__main__':
                     ctrl_pressed = False
             elif event.type == pg.MOUSEMOTION:
                 player.inventory.mouse_collide = lower_rect.collidepoint(event.pos)
-        player.handle_keypress(pressed)
         if pointed:
             player.move_by_pointer(move_to_cell)
+        else:
+            player.handle_keypress(pressed)
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
@@ -538,4 +550,3 @@ if __name__ == '__main__':
         player.inventory.update()
         pg.display.flip()
         clock.tick(FPS)
-        screen.fill(pg.Color('black'))

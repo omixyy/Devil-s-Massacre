@@ -252,13 +252,13 @@ class Player(MovingObject):
         self.flip = dir_x < 0
         self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
 
-    def slash(self, foldername):
+    def slash(self, foldername, frames=6):
         if self.do_slash:
-            images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, 7)]
+            images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, frames + 1)]
             tick = pg.time.get_ticks()
             image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
             if tick - self.slash_tick >= self.animation_delay:
-                self.current_slash = (self.current_slash + 1) % 6
+                self.current_slash = (self.current_slash + 1) % frames
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                 self.slash_tick = pg.time.get_ticks()
             if not self.flip:
@@ -266,7 +266,7 @@ class Player(MovingObject):
             else:
                 screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
                             (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
-        if self.current_slash == 5:
+        if self.current_slash == frames - 1:
             self.current_slash = -1
             self.do_slash = False
 
@@ -396,8 +396,10 @@ if __name__ == '__main__':
     castle = Castle('level1', 'level1.tmx')
     running = True
     pointed = False
+    shift_pressed = False
+    ctrl_pressed = False
     move_to_cell = None
-    do_slash = False
+    slash_name = 'Blue Slash Thin'
     clock = pg.time.Clock()
     castle.render()
     add_decor_elements()
@@ -408,10 +410,21 @@ if __name__ == '__main__':
             if event.type == pg.QUIT:
                 terminate()
                 running = False
-            if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1:
+            elif event.type == pg.KEYDOWN:
+                if event.key == pg.K_LSHIFT:
+                    shift_pressed = True
+                elif event.key == pg.K_LCTRL:
+                    ctrl_pressed = True
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                if event.button == 1 and not shift_pressed and not ctrl_pressed and not player.do_slash:
                     player.do_slash = True
-                    do_slash = True
+                    slash_name = 'Blue Slash Thin'
+                if event.button == 1 and shift_pressed and not player.do_slash:
+                    player.do_slash = True
+                    slash_name = 'Blue Slash Wide'
+                if event.button == 1 and ctrl_pressed and not player.do_slash:
+                    player.do_slash = True
+                    slash_name = 'Blue Group Slashes'
                 if event.button == 3:
                     pointed = True
                     move_to_cell = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
@@ -419,6 +432,11 @@ if __name__ == '__main__':
                         kill_arrow()
                     if castle.is_free((move_to_cell[0], move_to_cell[1])):
                         Pointer(event.pos[0] - 10, event.pos[1] - 15, 'arrow')
+            elif event.type == pg.KEYUP:
+                if event.key == pg.K_LSHIFT:
+                    shift_pressed = False
+                elif event.key == pg.K_LCTRL:
+                    ctrl_pressed = False
         player.handle_keypress(pressed)
         if pointed:
             player.move_by_pointer(move_to_cell)
@@ -427,7 +445,10 @@ if __name__ == '__main__':
             kill_arrow()
         castle.render()
         if player.do_slash:
-            player.slash('Blue Slash Thin')
+            if slash_name != 'Blue Group Slashes':
+                player.slash(slash_name)
+            else:
+                player.slash(slash_name, frames=20)
         for sprite in animated_sprites:
             sprite.animate()
         for chest in chests:

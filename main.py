@@ -294,7 +294,7 @@ class Inventory:
     def __init__(self) -> None:
         self.items_images = [[ITEMS_DIR + '/sword12.png'], [], [], []]
         self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory.png'), (170, 50))
-        self.health_image = pg.image.load(INTERFACE_DIR + '/heart_32x32.png')
+        self.health_image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/heart.png'), (32, 32))
         self.y_pos = HEIGHT
         self.mouse_collide = False
         self.current_item = 0

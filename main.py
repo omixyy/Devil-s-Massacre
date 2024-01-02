@@ -253,11 +253,18 @@ class Player(MovingObject):
         self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
 
     def slash(self, foldername, frames=6):
+        slash_delay = self.animation_delay
+        if 'Group' in foldername:
+            slash_delay = 150
+        elif 'Thin' in foldername:
+            slash_delay = 50
+        elif 'Wide' in foldername:
+            slash_delay = 100
         if self.do_slash:
             images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, frames + 1)]
             tick = pg.time.get_ticks()
             image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
-            if tick - self.slash_tick >= self.animation_delay:
+            if tick - self.slash_tick >= slash_delay:
                 self.current_slash = (self.current_slash + 1) % frames
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                 self.slash_tick = pg.time.get_ticks()

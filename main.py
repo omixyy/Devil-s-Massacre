@@ -176,6 +176,7 @@ class Player(MovingObject):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
+        self.health = 5
         self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
@@ -277,6 +278,11 @@ class Player(MovingObject):
             self.current_slash = -1
             self.do_slash = False
 
+    def use_current_item(self) -> None:
+        items = self.inventory.items_images[self.inventory.current_item]
+        if items and 'flasks_4' in items[0]:
+            self.health += 1 if self.health < 5 else 0
+
 
 class Pointer(AnimatedObject):
     def __init__(self, x: int, y: int, filename) -> None:
@@ -284,23 +290,27 @@ class Pointer(AnimatedObject):
 
 
 class Inventory:
-    def __init__(self):
-        self.items = [[ITEMS_DIR + '/' + 'sword12.png'], [], [], []]
+    def __init__(self) -> None:
+        self.items_images = [[ITEMS_DIR + '/' + 'sword12.png'], [], [], []]
         self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/' + 'inventory.png'), (170, 50))
         self.y_pos = HEIGHT
         self.mouse_collide = False
+        self.current_item = 0
 
     def draw(self) -> None:
         screen.blit(self.image, (315, self.y_pos))
-        for ind, cell in enumerate(self.items):
+        for ind, cell in enumerate(self.items_images):
             for item in cell:
                 item_image = pg.transform.scale(pg.image.load(item), (30, 30))
-                screen.blit(item_image, (330 + item_image.get_width() * ind + 7 * ind, self.y_pos + 15))
+                screen.blit(item_image, (331 + item_image.get_width() * ind + 6 * ind, self.y_pos + 15))
                 amount = len(cell)
                 if amount > 1:
                     font = pg.font.Font(None, 15)
                     rendered = font.render(f'x{amount}', 1, pg.Color('white'))
-                    screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 37))
+                    screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 35))
+        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/' + 'square_right_2.png'), (33, 33))
+        screen.blit(cur_item_mark, (330 + cur_item_mark.get_width() *
+                                    self.current_item + 3 * self.current_item, self.y_pos + 15))
 
     def update(self) -> None:
         if self.mouse_collide and self.y_pos >= 590:
@@ -309,13 +319,13 @@ class Inventory:
             self.y_pos += PLAYER_SPEED
 
     def add(self, obj, direct):
-        for cell in range(len(self.items)):
+        for cell in range(len(self.items_images)):
             file = direct + '/' + obj.filename + '_1.png'
-            if not self.items[cell] and not any([file in i for i in self.items]):
-                self.items[cell].append(file)
+            if not self.items_images[cell] and not any([file in i for i in self.items_images]):
+                self.items_images[cell].append(file)
                 break
-            elif self.items[cell] and self.items[cell][0] == file and len(self.items[cell]) < 4:
-                self.items[cell].append(file)
+            elif self.items_images[cell] and self.items_images[cell][0] == file and len(self.items_images[cell]) < 4:
+                self.items_images[cell].append(file)
         for i in coins:
             if i is obj:
                 i.kill()
@@ -469,16 +479,27 @@ if __name__ == '__main__':
                     shift_pressed = True
                 elif event.key == pg.K_LCTRL:
                     ctrl_pressed = True
+                elif event.key == pg.K_1:
+                    player.inventory.current_item = 0
+                elif event.key == pg.K_2:
+                    player.inventory.current_item = 1
+                elif event.key == pg.K_3:
+                    player.inventory.current_item = 2
+                elif event.key == pg.K_4:
+                    player.inventory.current_item = 3
             elif event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1 and not shift_pressed and not ctrl_pressed and not player.do_slash:
+                if (event.button == 1 and not shift_pressed and not ctrl_pressed and
+                        not player.do_slash and player.inventory.current_item == 0):
                     player.do_slash = True
                     slash_name = 'Blue Slash Thin'
-                if event.button == 1 and shift_pressed and not player.do_slash:
+                if event.button == 1 and shift_pressed and not player.do_slash and player.inventory.current_item == 0:
                     player.do_slash = True
                     slash_name = 'Blue Slash Wide'
-                if event.button == 1 and ctrl_pressed and not player.do_slash:
+                if event.button == 1 and ctrl_pressed and not player.do_slash and player.inventory.current_item == 0:
                     player.do_slash = True
                     slash_name = 'Blue Group Slashes'
+                if event.button == 1 and player.inventory.current_item != 0:
+                    player.use_current_item()
                 if event.button == 3:
                     pointed = True
                     move_to_cell = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE

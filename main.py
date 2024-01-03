@@ -59,6 +59,7 @@ class AnimatedObject(pg.sprite.Sprite):
     animate() :
         Изменяет кадр анимации.
     """
+
     def __init__(self, group: list | None, directory: str, x: int | None, y: int | None, filename: str) -> None:
         """
         Если x и y - None, то объект не должен появиться на карте.
@@ -124,6 +125,7 @@ class MovingObject(AnimatedObject):
     get_center_cell() :
         Возвращает клетку, в которой находится центр объекта.
     """
+
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], PLAYERS_DIR, x, y, filename)
         self.current_direction = (0, 0)
@@ -155,6 +157,7 @@ class Torch(AnimatedObject):
     """
     Класс для анимирования факелов
     """
+
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], TORCHES_DIR, x, y, filename)
 
@@ -168,6 +171,7 @@ class Key(AnimatedObject):
     update() :
         Прекращает анимацию, если есть пересечение с игроком.
     """
+
     def __init__(self, x: int | None, y: int | None, filename: str) -> None:
         if x is not None and y is not None:
             group = [keys_group, animated_sprites, can_be_picked_up]
@@ -176,7 +180,7 @@ class Key(AnimatedObject):
         super().__init__(group, KEYS_DIR, x, y, filename)
 
     def update(self) -> None:
-        if pg.sprite.collide_mask(self, player) and player.has_free_space(KEYS_DIR + '/' + self.filename):
+        if pg.sprite.collide_mask(self, player) and player.has_free_space(KEYS_DIR + '/' + self.filename) and not throw:
             self.do_blit = False
             self.do_animation = False
             player.inventory.add(self, KEYS_DIR)
@@ -191,6 +195,7 @@ class Coin(AnimatedObject):
     update() :
         Прекращает анимацию, если есть пересечение с игроком.
     """
+
     def __init__(self, x: int | None, y: int | None, filename: str) -> None:
         if x is not None and y is not None:
             group = [coins, animated_sprites, can_be_picked_up]
@@ -199,7 +204,8 @@ class Coin(AnimatedObject):
         super().__init__(group, COINS_DIR, x, y, filename)
 
     def update(self) -> None:
-        if pg.sprite.collide_mask(self, player) and player.has_free_space(COINS_DIR + '/' + self.filename):
+        if (pg.sprite.collide_mask(self, player) and
+                player.has_free_space(COINS_DIR + '/' + self.filename) and not throw):
             self.do_blit = False
             self.do_animation = False
             player.inventory.add(self, COINS_DIR)
@@ -214,6 +220,7 @@ class TeleportFlask(AnimatedObject):
     update() :
         Прекращает анимацию, если есть пересечение с игроком.
     """
+
     def __init__(self, x: int | None, y: int | None, filename: str) -> None:
         if x is not None and y is not None:
             group = [flasks, animated_sprites, can_be_picked_up]
@@ -222,7 +229,8 @@ class TeleportFlask(AnimatedObject):
         super().__init__(group, FLASKS_DIR, x, y, filename)
 
     def update(self) -> None:
-        if pg.sprite.collide_mask(self, player) and player.has_free_space(FLASKS_DIR + '/' + self.filename):
+        if (pg.sprite.collide_mask(self, player) and
+                player.has_free_space(FLASKS_DIR + '/' + self.filename) and not throw):
             self.do_blit = False
             self.do_animation = False
             player.inventory.add(self, FLASKS_DIR)
@@ -237,6 +245,7 @@ class HealFlask(AnimatedObject):
     update() :
         Прекращает анимацию, если есть пересечение с игроком.
     """
+
     def __init__(self, x: int | None, y: int | None, filename: str) -> None:
         if x is not None and y is not None:
             group = [flasks, animated_sprites, can_be_picked_up]
@@ -245,7 +254,8 @@ class HealFlask(AnimatedObject):
         super().__init__(group, FLASKS_DIR, x, y, filename)
 
     def update(self) -> None:
-        if pg.sprite.collide_mask(self, player) and player.has_free_space(FLASKS_DIR + '/' + self.filename):
+        if (pg.sprite.collide_mask(self, player) and
+                player.has_free_space(FLASKS_DIR + '/' + self.filename) and not throw):
             self.do_blit = False
             self.do_animation = False
             player.inventory.add(self, FLASKS_DIR)
@@ -264,6 +274,7 @@ class Chest(AnimatedObject):
     get_drop() :
         "Выдаёт" дроп из сундука
     """
+
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([chests, animated_sprites, can_be_opened], CHESTS_DIR, x, y, filename)
         self.opened = False
@@ -308,12 +319,13 @@ class Player(MovingObject):
         Объект, в котором содержатся предметы из инвентаря игрока,
         а так же отрисовываются сердечки, обозначающие здоровье.
     """
+
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__(x, y, filename)
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
-        self.health = 5
+        self.health = 4
         self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
@@ -431,6 +443,7 @@ class Pointer(AnimatedObject):
     """
     Класс, реализующий указатель, к которому объект игрока будет идти.
     """
+
     def __init__(self, x: int, y: int, filename) -> None:
         super().__init__([animated_sprites], INTERFACE_DIR, x, y, filename)
 
@@ -452,6 +465,8 @@ class Inventory:
         Нужна для плавного выдвижения панели
     mouse_collide : bool
         Показывает, пересекается ли изображение инвентаря с мышкой
+    throwing : Surface
+        Изображение выкидываемого предета
     current_item : int
         Показывает индекс выбранного предмета в инвентаре.
 
@@ -464,12 +479,15 @@ class Inventory:
     add() :
         Добавляет объект в инвентарь
     """
+
     def __init__(self) -> None:
         self.items_images = [[ITEMS_DIR + '/sword12.png'], [], [], []]
         self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory.png'), (170, 50))
         self.health_image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/heart.png'), (32, 32))
         self.y_pos = HEIGHT
         self.mouse_collide = False
+        self.throwing = None
+        self.thrown_elem = None
         self.current_item = 0
 
     def draw(self) -> None:
@@ -495,18 +513,41 @@ class Inventory:
         elif self.y_pos <= HEIGHT and not self.mouse_collide:
             self.y_pos += PLAYER_SPEED
 
-    def add(self, obj: AnimatedObject, direct: str, from_chest=False) -> None:
-        for cell in range(len(self.items_images)):
-            file = direct + '/' + obj.filename + '_1.png'
-            if not self.items_images[cell] and not any([file in i for i in self.items_images]):
-                self.items_images[cell].append(file)
-                break
-            elif self.items_images[cell] and self.items_images[cell][0] == file and len(self.items_images[cell]) < 4:
-                self.items_images[cell].append(file)
-        if not from_chest:
+    def add(self, obj: AnimatedObject, direct: str) -> None:
+        if not throw:
+            for cell in range(len(self.items_images)):
+                file = direct + '/' + obj.filename + '_1.png'
+                if not self.items_images[cell] and not any([file in i for i in self.items_images]):
+                    self.items_images[cell].append(file)
+                    break
+                elif self.items_images[cell] and self.items_images[cell][0] == file and len(
+                        self.items_images[cell]) < 4:
+                    self.items_images[cell].append(file)
             for i in can_be_picked_up:
                 if i is obj:
                     i.kill()
+
+    def throw(self):
+        if self.current_item != 0:
+            if self.items_images[self.current_item]:
+                self.throwing = pg.image.load(self.items_images[self.current_item][0])
+            mx, my = pg.mouse.get_pos()
+            if self.throwing is not None:
+                screen.blit(self.throwing, (mx - 15, my - 15))
+            if self.items_images[self.current_item]:
+                self.thrown_elem = self.items_images[self.current_item][0]
+                del self.items_images[self.current_item][0]
+
+    def spawn_thrown_object(self):
+        pos_x, pos_y = player.pos
+        if 'coin' in self.thrown_elem:
+            Coin(int(pos_x + 20), int(pos_y + 20), 'coin')
+        elif 'flasks_2' in self.thrown_elem:
+            TeleportFlask(int(pos_x + 20), int(pos_y + 20), 'flasks_2')
+        elif 'heal-flasks_4' in self.thrown_elem:
+            HealFlask(int(pos_x + 20), int(pos_y + 20), 'flasks_4')
+        elif 'keys_2' in self.thrown_elem:
+            Key(int(pos_x + 20), int(pos_y + 20), 'keys_2')
 
 
 class Castle:
@@ -539,6 +580,7 @@ class Castle:
     get_distance_ox() :
         Ищет расстояние до ближайшей стены по горизонтали
     """
+
     def __init__(self, foldername: str, filename: str) -> None:
         self.map = pytmx.load_pygame(f'maps/{foldername}/{filename}')
         self.height, self.width = self.map.height, self.map.width
@@ -660,6 +702,7 @@ class Button:
         Меняет изображение кнопки в зависимости от количества нажатий и
         увеличивает или уменьшает y_pos.
     """
+
     def __init__(self, image, pressed_image, x):
         self.image = image
         self.pressed_image = pressed_image
@@ -774,9 +817,12 @@ if __name__ == '__main__':
                           pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Play1.png'), (50, 50)), 750)
     running = True
     pointed = False
+    throw = False
     shift_pressed = False
     ctrl_pressed = False
     move_to_cell = None
+    lmb_pressed = False
+    inv_collide = False
     slash_name = 'Blue Slash Thin'
     clock = pg.time.Clock()
     castle.render()
@@ -803,6 +849,9 @@ if __name__ == '__main__':
                     player.inventory.current_item = 3
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    lmb_pressed = True
+                    inv_collide = pg.Rect((330 + 33 * player.inventory.current_item + 3 * player.inventory.current_item,
+                                           player.inventory.y_pos + 15, 33, 33)).collidepoint(event.pos)
                     mouse_x, _ = event.pos
                     if inventory_rect.collidepoint(event.pos):
                         cur = (mouse_x - 330) // 36
@@ -811,7 +860,7 @@ if __name__ == '__main__':
                     elif pause_button.rect.collidepoint(event.pos):
                         pause_button.clicks += 1
                     elif (not shift_pressed and not ctrl_pressed and
-                            not player.do_slash and player.inventory.current_item == 0):
+                          not player.do_slash and player.inventory.current_item == 0):
                         player.do_slash = True
                         slash_name = 'Blue Slash Thin'
                     elif shift_pressed and not player.do_slash and player.inventory.current_item == 0:
@@ -829,6 +878,9 @@ if __name__ == '__main__':
                         kill_arrow()
                     if castle.is_free((move_to_cell[0], move_to_cell[1])):
                         Pointer(event.pos[0] - 10, event.pos[1] - 15, 'arrow')
+            elif event.type == pg.MOUSEBUTTONUP:
+                if event.button == 1:
+                    lmb_pressed = False
             elif event.type == pg.KEYUP:
                 if event.key == pg.K_LSHIFT:
                     shift_pressed = False
@@ -838,7 +890,8 @@ if __name__ == '__main__':
                 collide = lower_rect.collidepoint(event.pos)
                 player.inventory.mouse_collide = collide
                 pause_button.mouse_collide = collide
-
+                if inv_collide:
+                    throw = lmb_pressed
         if pointed:
             player.move_by_pointer(move_to_cell)
         else:
@@ -860,12 +913,18 @@ if __name__ == '__main__':
             chest.update()
             if chest.opened and not chest.dropped:
                 drop = chest.get_drop()
-                player.inventory.add(drop, drop.dir, from_chest=True)
+                player.inventory.add(drop, drop.dir)
         for sprite in can_be_picked_up:
             sprite.update()
         player.inventory.draw()
         player.inventory.update()
         pause_button.draw()
         pause_button.update()
+        if throw:
+            player.inventory.throw()
+        elif player.inventory.throwing is not None:
+            player.inventory.spawn_thrown_object()
+        if not throw:
+            player.inventory.throwing = None
         pg.display.flip()
         clock.tick(FPS)

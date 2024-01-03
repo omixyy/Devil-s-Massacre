@@ -23,7 +23,6 @@ PLAYER_SPEED /= FPS  # [px] - изменение координат за кад�
 with open('maps/level1/elements_pos.json', 'r', encoding='utf8') as jsonf:
     coordinates = json.load(jsonf)
 
-in_chests = pg.sprite.Group()
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
@@ -31,29 +30,72 @@ flasks = pg.sprite.Group()
 can_be_opened = pg.sprite.Group()
 keys_group = pg.sprite.Group()
 can_be_picked_up = pg.sprite.Group()
+in_chests = pg.sprite.Group()
 
 
 class AnimatedObject(pg.sprite.Sprite):
     """
     Базовый класс для всех анимированных объектов
+
+    Атрибуты
+    ------
+    filename : str
+        Общая часть названий группы файлов.
+        Например, нужно сделать анимацию по трём кадрам: frame_1_1.png, frame_1_2.png, frame_1_3.png.
+        Переменная будет хранить строку 'frame_1'
+    dir : str
+        Путь к кадрам для анимации
+    images : list
+        Список путей к кадрам вместе с их названиями
+    do_blit : bool
+        Отвечает за продолжение или прекращение отрисовки объекта.
+        Прекратить нужно, например, в том случае, если игрок поднял объект и он оказался в инвентаре
+    current_image : int
+        Индекс пути к изображению в списке images.
+        Нужен для смены кадра в анимации
+    last_tick : int
+        Миллисекунда, когда была совершена последняя смена кадра анимации.
+        Нужен для измерения времени до изменения кадра
+    animation_delay : int
+        Количество миллисекунд, на которые нужно задерживать смену кадра анимации
+    pos : tuple
+        Координаты левого верхнего угла прямоугольника, описанного около изображения объекта
+    image : Surface
+        Текущий кадр анимации объекта
+    mask : Mask
+        Маска объекта.
+        Нужна для определения столкновения с игроком
+    rect : Rect
+        Прямоугольник, в который вписано изображение объекта.
+
+    Методы
+    ------
+    animate() :
+        Изменяет кадр анимации.
     """
-    def __init__(self, group: list, directory: str, x: int, y: int, filename: str) -> None:
+    def __init__(self, group: list | None, directory: str, x: int | None, y: int | None, filename: str) -> None:
+        """
+        Если x и y - None, то объект не должен появиться на карте.
+        Это сделано для того, чтобы объект можно было "положить" в сундук,
+        при этом не потерять возможность работать с ним как с полноценным объектом
+        """
         super().__init__(*group)
         self.filename = filename
         self.dir = directory
-        self.pos = x, y
-        self.flip = False
-        self.do_animation = True
-        self.do_blit = True
         self.images = [directory + f'/{filename}_{i}.png' for i in range(1, 5)]
-        self.current_image = 0
-        self.image = pg.image.load(self.images[self.current_image])
-        self.mask = pg.mask.from_surface(self.image)
-        self.last_tick = pg.time.get_ticks()
-        self.animation_delay = 100
-        self.rect = self.image.get_rect()
-        self.rect.topleft = self.pos
-        screen.blit(self.image, (x, y))
+        if x is not None and y is not None:
+            self.do_blit = True
+            self.current_image = 0
+            self.last_tick = pg.time.get_ticks()
+            self.animation_delay = 100
+            self.flip = False
+            self.do_animation = True
+            self.pos = x, y
+            self.image = pg.image.load(self.images[self.current_image])
+            self.mask = pg.mask.from_surface(self.image)
+            self.rect = self.image.get_rect()
+            self.rect.topleft = self.pos
+            screen.blit(self.image, (x, y))
 
     def animate(self) -> None:
         if self.do_animation:
@@ -73,10 +115,32 @@ class AnimatedObject(pg.sprite.Sprite):
 class MovingObject(AnimatedObject):
     """
     Базовый класс для объектов, способных двигаться (игрок, враги)
+
+    Атрибуты
+    ------
+    current_direction : tuple[int, int]
+        Показывает направление движения по осям x и y
+    collide_vertex : tuple[int, int]
+        Вершина, относительно которой рассчитывается положение объекта на карте
+
+    Методы
+    ------
+    move_by_delta() :
+        Изменяет положение объекта на dx и dy по осям x и y соответственно за один кадр
+    get_left_up_cell() :
+        Возвращает клетку, в которой находится левый верхний угол объекта
+    get_left_down_cell() :
+        Возвращает клетку, в которой находится левый нижний угол объекта
+    get_right_up_cell() :
+        Возвращает клетку, в которой находится правый верхний угол объекта
+    get_right_down_cell() :
+        Возвращает клетку, в которой находится правый нижний угол объекта
+    get_center_cell() :
+        Возвращает клетку, в которой находится центр объекта.
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], PLAYERS_DIR, x, y, filename)
-        self.current_dir = (0, 0)
+        self.current_direction = (0, 0)
         self.collide_vertex = self.get_center_cell()
 
     def move_by_delta(self, dx=1.0, dy=1.0) -> None:
@@ -100,27 +164,30 @@ class MovingObject(AnimatedObject):
         return (int((self.pos[0] + SPRITE_SIZE // 2) // SPRITE_SIZE),
                 int((self.pos[1] + SPRITE_SIZE // 2) // SPRITE_SIZE))
 
-    def get_center_coordinates(self) -> tuple[float, float]:
-        return self.pos[0] + SPRITE_SIZE / 2, self.pos[1] + SPRITE_SIZE / 2
-
 
 class Torch(AnimatedObject):
     """
-    Заготовка под будущий класс
+    Класс для анимирования факелов
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], TORCHES_DIR, x, y, filename)
 
-    def update(self) -> None:
-        if pg.sprite.collide_mask(self, player):
-            self.do_blit = False
-            self.do_animation = False
-            player.inventory.add(self, TORCHES_DIR)
-
 
 class Key(AnimatedObject):
-    def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([keys_group, animated_sprites, can_be_picked_up, in_chests], KEYS_DIR, x, y, filename)
+    """
+    Класс, реализующий объект "Ключ"
+
+    Методы
+    ------
+    update() :
+        Прекращает анимацию, если есть пересечение с игроком.
+    """
+    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+        if x is not None and y is not None:
+            group = [keys_group, animated_sprites, can_be_picked_up]
+        else:
+            group = [in_chests]
+        super().__init__(group, KEYS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player) and player.has_free_space(KEYS_DIR + '/' + self.filename):
@@ -131,10 +198,19 @@ class Key(AnimatedObject):
 
 class Coin(AnimatedObject):
     """
-    Заготовка под будущий класс
+    Класс, реализующий объект "Монета"
+
+    Методы
+    ------
+    update() :
+        Прекращает анимацию, если есть пересечение с игроком.
     """
-    def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([coins, animated_sprites, can_be_picked_up], COINS_DIR, x, y, filename)
+    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+        if x is not None and y is not None:
+            group = [coins, animated_sprites, can_be_picked_up]
+        else:
+            group = [in_chests]
+        super().__init__(group, COINS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player) and player.has_free_space(COINS_DIR + '/' + self.filename):
@@ -145,10 +221,19 @@ class Coin(AnimatedObject):
 
 class TeleportFlask(AnimatedObject):
     """
-    Заготовка под будущий класс
+    Класс, реализующий объект "Пузырёк с телепортирующей жидкостью"
+
+    Методы
+    ------
+    update() :
+        Прекращает анимацию, если есть пересечение с игроком.
     """
-    def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([flasks, animated_sprites, can_be_picked_up, in_chests], FLASKS_DIR, x, y, filename)
+    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+        if x is not None and y is not None:
+            group = [flasks, animated_sprites, can_be_picked_up]
+        else:
+            group = [in_chests]
+        super().__init__(group, FLASKS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player) and player.has_free_space(FLASKS_DIR + '/' + self.filename):
@@ -159,10 +244,19 @@ class TeleportFlask(AnimatedObject):
 
 class HealFlask(AnimatedObject):
     """
-    Заготовка под будущий класс
+    Класс, реализующий объект "Пузырёк с лечащей жидкостью"
+
+    Методы
+    ------
+    update() :
+        Прекращает анимацию, если есть пересечение с игроком.
     """
-    def __init__(self, x: int, y: int, filename: str) -> None:
-        super().__init__([flasks, animated_sprites, can_be_picked_up, in_chests], FLASKS_DIR, x, y, filename)
+    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+        if x is not None and y is not None:
+            group = [flasks, animated_sprites, can_be_picked_up]
+        else:
+            group = [in_chests]
+        super().__init__(group, FLASKS_DIR, x, y, filename)
 
     def update(self) -> None:
         if pg.sprite.collide_mask(self, player) and player.has_free_space(FLASKS_DIR + '/' + self.filename):
@@ -173,7 +267,16 @@ class HealFlask(AnimatedObject):
 
 class Chest(AnimatedObject):
     """
-    Заготовка под будущий класс
+    Класс, реализующий объект "Сундук"
+
+    Методы
+    ------
+    update() :
+        Запускает анимацию открытия при пересечении с игроком
+    animate_opening() :
+        Запускает анимацию открытия
+    get_drop() :
+        "Выдаёт" дроп из сундука
     """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([chests, animated_sprites, can_be_opened], CHESTS_DIR, x, y, filename)
@@ -196,10 +299,29 @@ class Chest(AnimatedObject):
     def get_drop(self) -> pg.sprite.Sprite:
         if not self.dropped:
             self.dropped = True
-            return choice(list(in_chests))
+            return choice([HealFlask(None, None, 'flasks_4'),
+                           TeleportFlask(None, None, 'flasks_2'),
+                           Key(None, None, 'keys_2')])
 
 
 class Player(MovingObject):
+    """
+    Класс, реализующий объект игрока
+
+    Аттрибуты
+    ------
+    current_slash : int
+        Показывает текущий какой кадр удара
+    slash_tick : int
+        Показывает, сколько миллисекунд назад был изменён кадр слэша
+    do_slash : bool
+        Показывает, нужно ли начинать анимацию слэша, или же нет
+    health : int
+        Количество здоровья игрока;
+    inventory : Inventory
+        Объект, в котором содержатся предметы из инвентаря игрока,
+        а так же отрисовываются сердечки, обозначающие здоровье.
+    """
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__(x, y, filename)
         self.current_slash = -1
@@ -237,7 +359,7 @@ class Player(MovingObject):
                 self.flip = False
 
     def move_by_pointer(self, to_where: tuple[int, int]) -> None:
-        if self.current_dir[0] > 0:
+        if self.current_direction[0] > 0:
             if (castle.get_distance_ox(self.get_left_up_cell())[1] <
                     castle.get_distance_ox(self.get_left_down_cell())[1]):
                 self.collide_vertex = self.get_left_up_cell()
@@ -247,7 +369,7 @@ class Player(MovingObject):
             else:
                 self.collide_vertex = self.get_center_cell()
 
-        if self.current_dir[0] < 0:
+        if self.current_direction[0] < 0:
             if (castle.get_distance_ox(self.get_right_up_cell())[0] <
                     castle.get_distance_ox(self.get_right_down_cell())[0]):
                 self.collide_vertex = self.get_right_up_cell()
@@ -257,7 +379,7 @@ class Player(MovingObject):
             else:
                 self.collide_vertex = self.get_center_cell()
 
-        if self.current_dir[1] > 0:
+        if self.current_direction[1] > 0:
             if (castle.get_distance_oy(self.get_left_up_cell())[1] <
                     castle.get_distance_oy(self.get_right_up_cell())[1]):
                 self.collide_vertex = self.get_left_up_cell()
@@ -267,7 +389,7 @@ class Player(MovingObject):
             else:
                 self.collide_vertex = self.get_center_cell()
 
-        if self.current_dir[1] < 0:
+        if self.current_direction[1] < 0:
             if (castle.get_distance_oy(self.get_left_down_cell())[0] <
                     castle.get_distance_oy(self.get_right_down_cell())[0]):
                 self.collide_vertex = self.get_left_down_cell()
@@ -278,7 +400,7 @@ class Player(MovingObject):
                 self.collide_vertex = self.get_center_cell()
         next_pos = castle.find_path_step(self.collide_vertex, to_where)
         dir_x, dir_y = next_pos[0] - self.collide_vertex[0], next_pos[1] - self.collide_vertex[1]
-        self.current_dir = (dir_x, dir_y)
+        self.current_direction = (dir_x, dir_y)
         self.flip = dir_x < 0
         self.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
 
@@ -311,7 +433,7 @@ class Player(MovingObject):
         items = self.inventory.items_images[self.inventory.current_item]
         if items and 'flasks_4' in items[0]:
             self.health += 1 if self.health < 5 else 0
-            del self.inventory.items_images[self.inventory.current_item]
+            del self.inventory.items_images[self.inventory.current_item][0]
 
     def has_free_space(self, file):
         file += '_1.png'
@@ -320,11 +442,42 @@ class Player(MovingObject):
 
 
 class Pointer(AnimatedObject):
+    """
+    Класс, реализующий указатель, к которому объект игрока будет идти.
+    """
     def __init__(self, x: int, y: int, filename) -> None:
         super().__init__([animated_sprites], INTERFACE_DIR, x, y, filename)
 
 
 class Inventory:
+    """
+    Класс, реализующий инвентарь игрока и хранящий информацию о его здоровье.
+
+    Атрибуты
+    ------
+    items_images : list
+        Хранит пути к картинкам объектов в каждой ячейке инвентаря
+    image : Surface
+        Изображение инвентаря
+    health_image : Surface
+        Изображение сердечка
+    y_pos : int
+        Позиция нижней панели по оси y.
+        Нужна для плавного выдвижения панели
+    mouse_collide : bool
+        Показывает, пересекается ли изображение инвентаря с мышкой
+    current_item : int
+        Показывает индекс выбранного предмета в инвентаре.
+
+    Методы
+    ------
+    draw() :
+        Прорисовывает сердечки и инвентарь
+    update() :
+        Уменьшает или увеличивает y_pos при приближении курсора к нижней части экрана
+    add() :
+        Добавляет объект в инвентарь
+    """
     def __init__(self) -> None:
         self.items_images = [[ITEMS_DIR + '/sword12.png'], [], [], []]
         self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory.png'), (170, 50))
@@ -371,6 +524,35 @@ class Inventory:
 
 
 class Castle:
+    """
+    Класс, реализующий объект карты
+
+    Атрибуты
+    ------
+    map : TiledMap
+        Сама загруженная карта
+    height : int
+        Высота карты в клетках
+    width : int
+        Ширина карты в клетках
+    walls : list
+        Хранит индексы тайлов, обозначающих стены
+
+    Методы
+    ------
+    render() :
+        Отрисовывает карту на экране
+    find_path_step() :
+        Алгоритм пошагового поиска клеток пути
+    get_tile_id() :
+        Определяет id тайла по координатам клетки
+    is_free() :
+        Определяет, является ли клетка стеной, или нет по её координатам
+    get_distance_oy() :
+        Ищет расстояние до ближайшей стены по вертикали
+    get_distance_ox() :
+        Ищет расстояние до ближайшей стены по горизонтали
+    """
     def __init__(self, foldername: str, filename: str) -> None:
         self.map = pytmx.load_pygame(f'maps/{foldername}/{filename}')
         self.height, self.width = self.map.height, self.map.width
@@ -459,6 +641,39 @@ class Castle:
 
 
 class Button:
+    """
+    Класс, реализовывающий кнопку
+
+    Атрибуты
+    ------
+    image : Surface
+        Изображение ненажатой кнопки
+    pressed_image : Surface
+        Изображение нажатой кнопки
+    current_image : Surface
+        Хранит то изображение, которое нужно отрисовать в данный момент
+    y_pos : int
+        Позиция кнопки по оси y
+    rect : Rect
+        Четырёхугольник, описанный около изображения
+    mouse_collide : bool
+        Есть ли пересечение с мышкой или нет
+    pressed : bool
+        Была ли кнопка нажата или нет
+    unpause : bool
+        Нужно ли убирать паузу или нет.
+        (Если кнопка - кнопка паузы)
+    clicks : int
+        Количество нажатий на кнопку.
+
+    Методы
+    ------
+    draw() :
+        Отрисовывает кнопку
+    update() :
+        Меняет изображение кнопки в зависимости от количества нажатий и
+        увеличивает или уменьшает y_pos.
+    """
     def __init__(self, image, pressed_image, x):
         self.image = image
         self.pressed_image = pressed_image
@@ -471,9 +686,6 @@ class Button:
         self.pressed = False
         self.unpause = True
         self.clicks = 0
-
-    def is_pressed(self):
-        return self.pressed
 
     def draw(self):
         if self.pressed:
@@ -498,6 +710,10 @@ class Button:
 
 
 def add_items() -> None:
+    """
+    Добавление различных элементов на карту.
+    :returns: None
+    """
     for elem, crd in coordinates.items():
         for pos in crd:
             pos_x, pos_y = pos[0] * SPRITE_SIZE, pos[1] * SPRITE_SIZE
@@ -518,6 +734,10 @@ def add_items() -> None:
 
 
 def pause() -> None:
+    """
+    Пауза.
+    :returns: None
+    """
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -536,16 +756,26 @@ def pause() -> None:
 
 
 def kill_arrow() -> None:
+    """
+    Убирает объект указателя из группы animated_sprites,
+    тем самым он перестаёт отрисовываться.
+    :return: None
+    """
     for obj in animated_sprites:
         if obj.filename == 'arrow':
             obj.kill()
 
 
 def terminate() -> None:
+    """
+    Выход из игры.
+    :return: None
+    """
     pg.quit()
     sys.exit()
 
 
+# ЗАПУСК
 if __name__ == '__main__':
     pg.init()
     pg.display.set_caption("Devil's Massacre")

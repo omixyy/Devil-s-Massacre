@@ -458,6 +458,45 @@ class Castle:
         return dist_left, dist_right
 
 
+class Button:
+    def __init__(self, image, pressed_image, x):
+        self.image = image
+        self.pressed_image = pressed_image
+        self.current_image = self.image
+        self.y_pos = HEIGHT
+        self.x = x
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (self.x, self.y_pos)
+        self.mouse_collide = False
+        self.pressed = False
+        self.unpause = True
+        self.clicks = 0
+
+    def is_pressed(self):
+        return self.pressed
+
+    def draw(self):
+        if self.pressed:
+            self.current_image = self.pressed_image
+        else:
+            self.current_image = self.image
+        screen.blit(self.current_image, (self.x, self.y_pos))
+
+    def update(self) -> None:
+        if self.mouse_collide and self.y_pos >= 590:
+            self.y_pos -= PLAYER_SPEED
+        elif self.y_pos <= HEIGHT and not self.mouse_collide:
+            self.y_pos += PLAYER_SPEED
+        self.rect.topleft = (self.x, self.y_pos)
+        if self.clicks % 2 == 1:
+            self.current_image = self.pressed_image
+            self.unpause = False
+        else:
+            self.current_image = self.image
+            self.unpause = True
+        screen.blit(self.current_image, (self.x, self.y_pos))
+
+
 def add_items() -> None:
     for elem, crd in coordinates.items():
         for pos in crd:
@@ -476,6 +515,24 @@ def add_items() -> None:
                 Key(pos_x, pos_y, 'keys_2')
             elif elem == 'big-chests':
                 Chest(pos_x, pos_y, 'chest')
+
+
+def pause() -> None:
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.KEYDOWN:
+                if evt.key == pg.K_ESCAPE:
+                    return
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    pause_button.clicks += 1
+        if pause_button.unpause:
+            return
+        pause_button.draw()
+        pause_button.update()
 
 
 def kill_arrow() -> None:
@@ -497,6 +554,8 @@ if __name__ == '__main__':
     castle = Castle('level1', 'level1.tmx')
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
+    pause_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Pause1.png'), (50, 50)),
+                          pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Play1.png'), (50, 50)), 750)
     running = True
     pointed = False
     shift_pressed = False
@@ -533,6 +592,8 @@ if __name__ == '__main__':
                         cur = (mouse_x - 330) // 36
                         if 0 <= cur <= 3:
                             player.inventory.current_item = cur
+                    elif pause_button.rect.collidepoint(event.pos):
+                        pause_button.clicks += 1
                     elif (not shift_pressed and not ctrl_pressed and
                             not player.do_slash and player.inventory.current_item == 0):
                         player.do_slash = True
@@ -558,7 +619,10 @@ if __name__ == '__main__':
                 elif event.key == pg.K_LCTRL:
                     ctrl_pressed = False
             elif event.type == pg.MOUSEMOTION:
-                player.inventory.mouse_collide = lower_rect.collidepoint(event.pos)
+                collide = lower_rect.collidepoint(event.pos)
+                player.inventory.mouse_collide = collide
+                pause_button.mouse_collide = collide
+
         if pointed:
             player.move_by_pointer(move_to_cell)
         else:
@@ -566,6 +630,8 @@ if __name__ == '__main__':
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
+        if not pause_button.unpause:
+            pause()
         castle.render()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
@@ -583,5 +649,7 @@ if __name__ == '__main__':
             sprite.update()
         player.inventory.draw()
         player.inventory.update()
+        pause_button.draw()
+        pause_button.update()
         pg.display.flip()
         clock.tick(FPS)

@@ -3,21 +3,20 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "level1.tmx",
+    "activeFile": "level2.tmx",
     "expandedProjectPaths": [
-        "."
     ],
     "fileStates": {
         "Dungeon_Tileset.tsx": {
             "scaleInDock": 1,
             "scaleInEditor": 1
         },
-        "level1.tmx": {
-            "scale": 1,
-            "selectedLayer": 0,
+        "level2.tmx": {
+            "scale": 1.2480624999999999,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 393.5,
-                "y": 312
+                "x": 400.22034152937056,
+                "y": 320.4967699934899
             }
         }
     },
@@ -28,13 +27,13 @@
     "map.tileWidth": 16,
     "map.width": 50,
     "openFiles": [
-        "level1.tmx",
+        "level2.tmx",
         "Dungeon_Tileset.tsx"
     ],
-    "project": "level1.tiled-project",
+    "project": "безымянный.tiled-project",
     "recentFiles": [
         "Dungeon_Tileset.tsx",
-        "level1.tmx"
+        "level2.tmx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {

@@ -5,8 +5,10 @@ import pytmx
 import json
 from constants import *
 
+level = 'level2'
+
 # Считываем координаты для анимированных декораций из json
-with open('maps/level1/elements_pos.json', 'r', encoding='utf8') as jsonf:
+with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
     coordinates = json.load(jsonf)
 
 chests = pg.sprite.Group()
@@ -160,6 +162,15 @@ class Torch(AnimatedObject):
 
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], TORCHES_DIR, x, y, filename)
+
+
+class Flag(AnimatedObject):
+    """
+        Класс для анимирования флагов
+        """
+
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__([animated_sprites], FLAG_DIR, x, y, filename)
 
 
 class Key(AnimatedObject):
@@ -596,6 +607,7 @@ class Castle:
                       10, 15, 20, 25, 30, 35,
                       40, 41, 42, 43, 44, 45,
                       50, 51, 52, 53, 54, 55]
+        print(self.get_tile_id((32, 14)))
 
     def render(self) -> None:
         for y in range(self.height):
@@ -768,6 +780,10 @@ def add_items() -> None:
                 Key(pos_x, pos_y, 'keys_2')
             elif elem == 'big-chests':
                 Chest(pos_x, pos_y, 'chest')
+            elif elem == 'candle-stick':
+                Torch(pos_x, pos_y, 'candlestick_2')
+            elif elem == 'flag':
+                Flag(pos_x, pos_y, 'flag')
 
 
 def pause() -> None:
@@ -818,7 +834,7 @@ if __name__ == '__main__':
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
     screen.fill(pg.Color('black'))
-    castle = Castle('level1', 'level1.tmx')
+    castle = Castle(level, level + '.tmx')
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
     pause_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Pause1.png'), (50, 50)),

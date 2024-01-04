@@ -466,7 +466,9 @@ class Inventory:
     mouse_collide : bool
         Показывает, пересекается ли изображение инвентаря с мышкой
     throwing : Surface
-        Изображение выкидываемого предета
+        Изображение выкидываемого предмета
+    thrown_elem : None | str
+        Путь к картинке выкинутого объекта
     current_item : int
         Показывает индекс выбранного предмета в инвентаре.
 
@@ -478,6 +480,10 @@ class Inventory:
         Уменьшает или увеличивает y_pos при приближении курсора к нижней части экрана
     add() :
         Добавляет объект в инвентарь
+    remove() :
+        Удаляет объект из инвентаря
+    spawn_thrown_object() :
+        Создаёт выкинутый объект на карте
     """
 
     def __init__(self) -> None:
@@ -546,7 +552,7 @@ class Inventory:
             Coin(int(pos_x + 20), int(pos_y + 20), 'coin')
         elif 'flasks_2' in self.thrown_elem:
             TeleportFlask(int(pos_x + 20), int(pos_y + 20), 'flasks_2')
-        elif 'heal-flasks_4' in self.thrown_elem:
+        elif 'flasks_4' in self.thrown_elem:
             HealFlask(int(pos_x + 20), int(pos_y + 20), 'flasks_4')
         elif 'keys_2' in self.thrown_elem:
             Key(int(pos_x + 20), int(pos_y + 20), 'keys_2')

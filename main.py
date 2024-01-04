@@ -607,7 +607,6 @@ class Castle:
                       10, 15, 20, 25, 30, 35,
                       40, 41, 42, 43, 44, 45,
                       50, 51, 52, 53, 54, 55]
-        print(self.get_tile_id((32, 14)))
 
     def render(self) -> None:
         for y in range(self.height):

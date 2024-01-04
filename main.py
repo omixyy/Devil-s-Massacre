@@ -527,6 +527,9 @@ class Inventory:
                 if i is obj:
                     i.kill()
 
+    def remove(self):
+        del self.items_images[self.current_item][0]
+
     def throw(self):
         if self.current_item != 0:
             if self.items_images[self.current_item]:
@@ -536,7 +539,6 @@ class Inventory:
                 screen.blit(self.throwing, (mx - 15, my - 15))
             if self.items_images[self.current_item]:
                 self.thrown_elem = self.items_images[self.current_item][0]
-                del self.items_images[self.current_item][0]
 
     def spawn_thrown_object(self):
         pos_x, pos_y = player.pos
@@ -924,6 +926,7 @@ if __name__ == '__main__':
             player.inventory.throw()
         elif player.inventory.throwing is not None:
             player.inventory.spawn_thrown_object()
+            player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
         pg.display.flip()

@@ -451,7 +451,7 @@ class Player(MovingObject):
             self.health += 1 if self.health < 5 else 0
             del self.inventory.items_images[self.inventory.current_item][0]
 
-    def has_free_space(self, file):
+    def has_free_space(self, file: str) -> bool:
         file += '_1.png'
         return (any([file in i[0] and len(i) < 4 for i in self.inventory.items_images if i]) or
                 any([len(i) == 0 for i in self.inventory.items_images]))
@@ -462,7 +462,7 @@ class Pointer(AnimatedObject):
     Класс, реализующий указатель, к которому объект игрока будет идти.
     """
 
-    def __init__(self, x: int, y: int, filename) -> None:
+    def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], INTERFACE_DIR, x, y, filename)
 
 
@@ -551,10 +551,10 @@ class Inventory:
                 if i is obj:
                     i.kill()
 
-    def remove(self):
+    def remove(self) -> None:
         del self.items_images[self.current_item][0]
 
-    def throw(self):
+    def throw(self) -> None:
         if self.current_item != 0:
             if self.items_images[self.current_item]:
                 self.throwing = pg.image.load(self.items_images[self.current_item][0])
@@ -564,7 +564,7 @@ class Inventory:
             if self.items_images[self.current_item]:
                 self.thrown_elem = self.items_images[self.current_item][0]
 
-    def spawn_thrown_object(self):
+    def spawn_thrown_object(self) -> None:
         pos_x, pos_y = player.pos
         if 'coin' in self.thrown_elem:
             Coin(int(pos_x + 20), int(pos_y + 20), 'coin')
@@ -647,10 +647,10 @@ class Castle:
             x, y = prev[y][x]
         return x, y
 
-    def get_tile_id(self, position) -> int:
+    def get_tile_id(self, position: tuple[int, int]) -> int:
         return self.map.tiledgidmap[self.map.get_tile_gid(*position, layer=0)] - 1
 
-    def is_free(self, position) -> bool:
+    def is_free(self, position: tuple[int, int]) -> bool:
         return self.get_tile_id(position) not in self.walls
 
     def get_distance_oy(self, position: tuple[int, int]) -> tuple[int, int]:
@@ -729,7 +729,7 @@ class Button:
         увеличивает или уменьшает y_pos.
     """
 
-    def __init__(self, image, pressed_image, x):
+    def __init__(self, image: pg.Surface, pressed_image: pg.Surface, x: int) -> None:
         self.image = image
         self.pressed_image = pressed_image
         self.current_image = self.image
@@ -742,7 +742,7 @@ class Button:
         self.unpause = True
         self.clicks = 0
 
-    def draw(self):
+    def draw(self) -> None:
         if self.pressed:
             self.current_image = self.pressed_image
         else:

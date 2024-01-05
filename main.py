@@ -154,6 +154,8 @@ class MovingObject(AnimatedObject):
         return (int((self.pos[0] + SPRITE_SIZE // 2) // SPRITE_SIZE),
                 int((self.pos[1] + SPRITE_SIZE // 2) // SPRITE_SIZE))
 
+    def get_center_cell_coordinates(self): ...
+
 
 class Torch(AnimatedObject):
     """
@@ -565,15 +567,21 @@ class Inventory:
                 self.thrown_elem = self.items_images[self.current_item][0]
 
     def spawn_thrown_object(self) -> None:
-        pos_x, pos_y = player.pos
+        pos_x, pos_y = player.get_center_cell()[0] * SPRITE_SIZE, player.get_center_cell()[1] * SPRITE_SIZE
+        spawn_pos = pos_x + 16, pos_y + 16
+        for x, y in [(pos_x + 16, pos_y + 16), (pos_x, pos_y + 16), (pos_x - 16, pos_y + 16),
+                     (pos_x + 16, pos_y), (pos_x - 16, pos_y),
+                     (pos_x - 16, pos_y - 16), (pos_x, pos_y - 16), (pos_x + 16, pos_y - 16)]:
+            if castle.is_free((int(x // SPRITE_SIZE), int(y // SPRITE_SIZE))):
+                spawn_pos = x, y
         if 'coin' in self.thrown_elem:
-            Coin(int(pos_x + 20), int(pos_y + 20), 'coin')
+            Coin(int(spawn_pos[0]), int(spawn_pos[1]), 'coin')
         elif 'flasks_2' in self.thrown_elem:
-            TeleportFlask(int(pos_x + 20), int(pos_y + 20), 'flasks_2')
+            TeleportFlask(int(spawn_pos[0]), int(spawn_pos[1]), 'flasks_2')
         elif 'flasks_4' in self.thrown_elem:
-            HealFlask(int(pos_x + 20), int(pos_y + 20), 'flasks_4')
+            HealFlask(int(spawn_pos[0]), int(spawn_pos[1]), 'flasks_4')
         elif 'keys_2' in self.thrown_elem:
-            Key(int(pos_x + 20), int(pos_y + 20), 'keys_2')
+            Key(int(spawn_pos[0]), int(spawn_pos[1]), 'keys_2')
 
 
 class Castle:

@@ -567,7 +567,7 @@ class Inventory:
                 self.thrown_elem = self.items_images[self.current_item][0]
 
     def spawn_thrown_object(self) -> None:
-        pos_x, pos_y = player.get_center_cell()[0] * SPRITE_SIZE, player.get_center_cell()[1] * SPRITE_SIZE
+        pos_x, pos_y = player.pos
         spawn_pos = pos_x + 16, pos_y + 16
         for x, y in [(pos_x + 16, pos_y + 16), (pos_x, pos_y + 16), (pos_x - 16, pos_y + 16),
                      (pos_x + 16, pos_y), (pos_x - 16, pos_y),

@@ -778,48 +778,55 @@ class Button:
 class ScreenDesigner:
     def __init__(self):
         self.font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 50)
+        self.not_pressed = pg.image.load(INTERFACE_DIR + '/UI_Flat_Banner_01_Upward.png')
+        self.pressed = pg.image.load(INTERFACE_DIR + '/UI_Flat_Banner_01_Downward.png')
 
     def render_start_window(self):
-        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_background.png'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_title("Devel`s massacre!", WIDTH // 2, HEIGHT // 4)
+        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
+        self.draw_title("Devel`s Massacre", WIDTH // 2, HEIGHT // 4)
         self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
         self.draw_start_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
         self.draw_level_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
 
     def render_pause_window(self):
-        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
-        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
-
-    def update_pause_window(self):
-        pass
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 - 25)
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 125)
 
     def render_finish_window(self):
         pass
 
     def draw_menu_button(self, x, y):
-        self.menu_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/menu.png'), (200, 100)),
-                                  pg.transform.scale(pg.image.load(INTERFACE_DIR + '/menu.png'), (200, 100)), x, y)
+        text = self.font.render('MENU', 1, (0, 0, 0))
+        self.menu_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                  pg.transform.scale(self.pressed, (200, 100)), x, y)
         self.menu_button.draw()
+        screen.blit(text, (x + 43, y + 21))
 
     def draw_title(self, text_in, x, y):
-        text = self.font.render(text_in, True, pg.Color('white'))
+        text = self.font.render(text_in, True, pg.Color('bisque'))
         text_rect = text.get_rect(center=(x, y))
         screen.blit(text, text_rect)
 
     def draw_start_button(self, x, y):
-        self.start_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start.jpeg'), (200, 100)),
-                                   pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start.jpeg'), (200, 100)), x, y)
+        text = self.font.render('START', 1, (0, 0, 0))
+        self.start_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                   pg.transform.scale(self.pressed, (200, 100)), x, y)
         self.start_button.draw()
+        screen.blit(text, (x + 42, y + 21))
 
     def draw_level_button(self, x, y):
-        self.level_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/level.png'), (200, 100)),
-                                   pg.transform.scale(pg.image.load(INTERFACE_DIR + '/level.png'), (200, 100)), x, y)
+        text = self.font.render('LEVEL', 1, (0, 0, 0))
+        self.level_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                   pg.transform.scale(self.pressed, (200, 100)), x, y)
         self.level_button.draw()
+        screen.blit(text, (x + 42, y + 21))
 
     def draw_exit_button(self, x, y):
-        self.exit_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/exit.jpeg'), (200, 100)),
-                                  pg.transform.scale(pg.image.load(INTERFACE_DIR + '/exit.jpeg'), (200, 100)), x, y)
+        text = self.font.render('EXIT', 1, (0, 0, 0))
+        self.exit_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                  pg.transform.scale(self.pressed, (200, 100)), x, y)
         self.exit_button.draw()
+        screen.blit(text, (x + 65, y + 21))
 
 
 def start_window():
@@ -914,6 +921,9 @@ def add_items() -> None:
 
 def run_level(lvl: str) -> None:
     global throw, player, castle
+    for i in animated_sprites:
+        if isinstance(i, Player):
+            i.kill()
     castle = Castle(lvl, lvl + '.tmx')
     player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
     pause_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Pause1.png'), (50, 50)),

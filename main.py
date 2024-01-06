@@ -945,7 +945,9 @@ def pause_window():
         pg.display.flip()
 
 
-"""def finish_window():
+def finish_window():
+    pass
+    """
     finish_window = ScreenDesigner()  # exit, menu, next, items, time, title
     while True:
         for evt in pg.event.get():

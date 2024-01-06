@@ -567,7 +567,7 @@ class Inventory:
                 self.thrown_elem = self.items_images[self.current_item][0]
 
     def spawn_thrown_object(self) -> None:
-        pos_x, pos_y = player.get_center_cell()[0] * SPRITE_SIZE, player.get_center_cell()[1] * SPRITE_SIZE
+        pos_x, pos_y = player.pos
         spawn_pos = pos_x + 16, pos_y + 16
         for x, y in [(pos_x + 16, pos_y + 16), (pos_x, pos_y + 16), (pos_x - 16, pos_y + 16),
                      (pos_x + 16, pos_y), (pos_x - 16, pos_y),
@@ -775,6 +775,115 @@ class Button:
         screen.blit(self.current_image, (self.x, self.y_pos))
 
 
+class ScreenDesigner:
+    def __init__(self):
+        self.font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 50)
+
+    def render_start_window(self):
+        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_background.png'), (WIDTH, HEIGHT)), (0, 0))
+        self.draw_title("Devel`s massacre!", WIDTH // 2, HEIGHT // 4)
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
+        self.draw_start_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
+        self.draw_level_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
+
+    def render_pause_window(self):
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
+
+    def update_pause_window(self):
+        pass
+
+    def render_finish_window(self):
+        pass
+
+    def draw_menu_button(self, x, y):
+        self.menu_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/menu.png'), (200, 100)),
+                                  pg.transform.scale(pg.image.load(INTERFACE_DIR + '/menu.png'), (200, 100)), x, y)
+        self.menu_button.draw()
+
+    def draw_title(self, text_in, x, y):
+        text = self.font.render(text_in, True, pg.Color('white'))
+        text_rect = text.get_rect(center=(x, y))
+        screen.blit(text, text_rect)
+
+    def draw_start_button(self, x, y):
+        self.start_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start.jpeg'), (200, 100)),
+                                   pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start.jpeg'), (200, 100)), x, y)
+        self.start_button.draw()
+
+    def draw_level_button(self, x, y):
+        self.level_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/level.png'), (200, 100)),
+                                   pg.transform.scale(pg.image.load(INTERFACE_DIR + '/level.png'), (200, 100)), x, y)
+        self.level_button.draw()
+
+    def draw_exit_button(self, x, y):
+        self.exit_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/exit.jpeg'), (200, 100)),
+                                  pg.transform.scale(pg.image.load(INTERFACE_DIR + '/exit.jpeg'), (200, 100)), x, y)
+        self.exit_button.draw()
+
+
+def start_window():
+    start_menu = ScreenDesigner()  # exit, title, start, level
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if start_menu.start_button.rect.collidepoint(evt.pos):
+                    run_level(level)
+                if start_menu.level_button.rect.collidepoint(evt.pos):
+                    level_window()
+                if start_menu.exit_button.rect.collidepoint(evt.pos):
+                    terminate()
+                    break
+
+        start_menu.render_start_window()
+        pg.display.flip()
+
+
+def finish_window():
+    """window = ScreenDesigner()  # exit, menu, next, items, time, title
+        window.render_finish_window()
+        window.update()
+        pg.display.flip()"""
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+
+
+def level_window(): ...
+
+
+def pause_window(pause_button):
+    pause_menu = ScreenDesigner()
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.KEYDOWN:
+                if evt.key == pg.K_ESCAPE:
+                    pause_button.clicks += 1
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    pause_button.clicks += 1
+                if pause_menu.menu_button.rect.collidepoint(evt.pos):
+                    start_window()
+                if pause_menu.exit_button.rect.collidepoint(evt.pos):
+                    terminate()
+                    break
+        if pause_button.unpause:
+            return
+        pause_menu.render_pause_window()
+        pause_button.update()
+
+        pause_button.update()
+        pg.display.flip()
+
+
 def add_items() -> None:
     """
     Добавление различных элементов на карту.
@@ -803,173 +912,14 @@ def add_items() -> None:
                 Flag(pos_x, pos_y, 'flag')
 
 
-def pause() -> None:
-    """
-    Пауза.
-    :returns: None
-    """
-    while True:
-        for evt in pg.event.get():
-            if evt.type == pg.QUIT:
-                terminate()
-                break
-            elif evt.type == pg.KEYDOWN:
-                if evt.key == pg.K_ESCAPE:
-                    return
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
-                    pause_button.clicks += 1
-        if pause_button.unpause:
-            return
-        pause_button.draw()
-        pause_button.update()
-
-
-def kill_arrow() -> None:
-    """
-    Убирает объект указателя из группы animated_sprites,
-    тем самым он перестаёт отрисовываться.
-    :return: None
-    """
-    for obj in animated_sprites:
-        if obj.filename == 'arrow':
-            obj.kill()
-
-
-def terminate() -> None:
-    """
-    Выход из игры.
-    :return: None
-    """
-    pg.quit()
-    sys.exit()
-
-
-class ScreenDesigner():
-    def __init__(self):
-        self.font = pg.font.Font('data/EpilepsySans.ttf', 50)
-
-    def render_start_window(self):
-        screen.blit(pg.transform.scale(pg.image.load('data/start_background.png'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_title("Devel`s massacre!", WIDTH // 2, HEIGHT // 4)
-        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
-        self.draw_start_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
-        self.draw_level_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
-
-    def render_pause_window(self):
-        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
-        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
-
-    def update_pause_window(self):
-        pass
-
-    def render_finish_window(self):
-        pass
-
-    def draw_menu_button(self, x, y):
-        self.menu_button = Button(pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)),
-                                  pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)), x, y)
-        self.menu_button.draw()
-
-    def draw_title(self, textin, x, y):
-        text = self.font.render(textin, True, pg.Color('white'))
-        text_rect = text.get_rect(center=(x, y))
-        screen.blit(text, text_rect)
-
-    def draw_start_button(self, x, y):
-        self.start_button = Button(pg.transform.scale(pg.image.load('data/start.jpeg'), (200, 100)),
-                                   pg.transform.scale(pg.image.load('data/start.jpeg'), (200, 100)), x, y)
-        self.start_button.draw()
-
-    def draw_level_button(self, x, y):
-        self.level_button = Button(pg.transform.scale(pg.image.load('data/level.png'), (200, 100)),
-                                   pg.transform.scale(pg.image.load('data/level.png'), (200, 100)), x, y)
-        self.level_button.draw()
-
-    def draw_exit_button(self, x, y):
-        self.exit_button = Button(pg.transform.scale(pg.image.load('data/exit.jpeg'), (200, 100)),
-                                  pg.transform.scale(pg.image.load('data/exit.jpeg'), (200, 100)), x, y)
-        self.exit_button.draw()
-
-
-def start_window():
-    start_window = ScreenDesigner()  # exit, title, start, level
-    while True:
-        for evt in pg.event.get():
-            if evt.type == pg.QUIT:
-                terminate()
-                break
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                if start_window.start_button.rect.collidepoint(evt.pos):
-                    return
-                if start_window.level_button.rect.collidepoint(evt.pos):
-                    level_window()
-                if start_window.exit_button.rect.collidepoint(evt.pos):
-                    terminate()
-                    break
-
-        start_window.render_start_window()
-        pg.display.flip()
-
-
-def level_window():
-    print("FFFF")
-    level_window = ScreenDesigner()  # menu, level1 + доступ, level2 + ljcneg...
-    pass
-
-
-def pause_window():
-    pause_window = ScreenDesigner()
-    while True:
-        for evt in pg.event.get():
-            if evt.type == pg.QUIT:
-                terminate()
-                break
-            elif evt.type == pg.KEYDOWN:
-                if evt.key == pg.K_ESCAPE:
-                    pause_button.clicks += 1
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
-                    pause_button.clicks += 1
-                if pause_window.menu_button.rect.collidepoint(evt.pos):
-                    start_window()
-                if pause_window.exit_button.rect.collidepoint(evt.pos):
-                    terminate()
-                    break
-        if pause_button.unpause:
-            return
-        pause_window.render_pause_window()
-        pause_button.update()
-
-        pause_button.update()
-        pg.display.flip()
-
-
-def finish_window():
-    pass
-    """
-    finish_window = ScreenDesigner()  # exit, menu, next, items, time, title
-    while True:
-        for evt in pg.event.get():
-            if evt.type == pg.QUIT:
-                terminate()
-                break
-    finish_window.render_finish_window()
-    finish_window.update()
-    pg.display.flip()
-"""
-# ЗАПУСК
-if __name__ == '__main__':
-    pg.init()
-    pg.display.set_caption("Devil's Massacre")
-    screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
-    screen.fill(pg.Color('black'))
-    start_window()
-    castle = Castle(level, level + '.tmx')
-    lower_rect = pg.Rect(0, 590, 800, 50)
-    inventory_rect = pg.Rect(315, 590, 170, 50)
+def run_level(lvl: str) -> None:
+    global throw, player, castle
+    castle = Castle(lvl, lvl + '.tmx')
+    player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
     pause_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Pause1.png'), (50, 50)),
                           pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Play1.png'), (50, 50)), 750)
+    castle.render()
+    slash_name = 'Blue Slash Thin'
     running = True
     pointed = False
     throw = False
@@ -979,11 +929,6 @@ if __name__ == '__main__':
     lmb_pressed = False
     inv_collide = False
     end = False
-    slash_name = 'Blue Slash Thin'
-    clock = pg.time.Clock()
-    castle.render()
-    add_items()
-    player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
     while running:
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
@@ -1057,7 +1002,7 @@ if __name__ == '__main__':
             kill_arrow()
         if not pause_button.unpause:
             # pause()
-            pause_window()
+            pause_window(pause_button)
         castle.render()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
@@ -1088,3 +1033,58 @@ if __name__ == '__main__':
             finish_window()
         pg.display.flip()
         clock.tick(FPS)
+
+
+def pause(pause_button) -> None:
+    """
+    Пауза.
+    :returns: None
+    """
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.KEYDOWN:
+                if evt.key == pg.K_ESCAPE:
+                    return
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    pause_button.clicks += 1
+        if pause_button.unpause:
+            return
+        pause_button.draw()
+        pause_button.update()
+
+
+def kill_arrow() -> None:
+    """
+    Убирает объект указателя из группы animated_sprites,
+    тем самым он перестаёт отрисовываться.
+    :return: None
+    """
+    for obj in animated_sprites:
+        if obj.filename == 'arrow':
+            obj.kill()
+
+
+def terminate() -> None:
+    """
+    Выход из игры.
+    :return: None
+    """
+    pg.quit()
+    sys.exit()
+
+
+# ЗАПУСК
+if __name__ == '__main__':
+    pg.init()
+    pg.display.set_caption("Devil's Massacre")
+    screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
+    screen.fill(pg.Color('black'))
+    lower_rect = pg.Rect(0, 590, 800, 50)
+    inventory_rect = pg.Rect(315, 590, 170, 50)
+    clock = pg.time.Clock()
+    add_items()
+    start_window()

@@ -868,7 +868,7 @@ class ScreenDesigner():
 
     def draw_menu_button(self, x, y):
         self.menu_button = Button(pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)),
-                                   pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)), x, y)
+                                  pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)), x, y)
         self.menu_button.draw()
 
     def draw_title(self, textin, x, y):
@@ -944,7 +944,8 @@ def pause_window():
         pause_button.update()
         pg.display.flip()
 
-def finish_window():
+
+"""def finish_window():
     finish_window = ScreenDesigner()  # exit, menu, next, items, time, title
     while True:
         for evt in pg.event.get():
@@ -954,7 +955,7 @@ def finish_window():
     finish_window.render_finish_window()
     finish_window.update()
     pg.display.flip()
-
+"""
 # ЗАПУСК
 if __name__ == '__main__':
     pg.init()

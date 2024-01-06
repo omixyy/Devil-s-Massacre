@@ -737,11 +737,14 @@ class Button:
         увеличивает или уменьшает y_pos.
     """
 
-    def __init__(self, image: pg.Surface, pressed_image: pg.Surface, x: int) -> None:
+    def __init__(self, image: pg.Surface, pressed_image: pg.Surface, x: int, y=None) -> None:
         self.image = image
         self.pressed_image = pressed_image
         self.current_image = self.image
-        self.y_pos = HEIGHT
+        if y:
+            self.y_pos = y
+        else:
+            self.y_pos = HEIGHT
         self.x = x
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.x, self.y_pos)
@@ -842,12 +845,123 @@ def terminate() -> None:
     sys.exit()
 
 
+class ScreenDesigner():
+    def __init__(self):
+        self.font = pg.font.Font('data/EpilepsySans.ttf', 50)
+
+    def render_start_window(self):
+        screen.blit(pg.transform.scale(pg.image.load('data/start_background.png'), (WIDTH, HEIGHT)), (0, 0))
+        self.draw_title("Devel`s massacre!", WIDTH // 2, HEIGHT // 4)
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
+        self.draw_start_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
+        self.draw_level_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
+
+    def render_pause_window(self):
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
+
+    def update_pause_window(self):
+        pass
+
+    def render_finish_window(self):
+        pass
+
+    def draw_menu_button(self, x, y):
+        self.menu_button = Button(pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)),
+                                   pg.transform.scale(pg.image.load('data/menu.png'), (200, 100)), x, y)
+        self.menu_button.draw()
+
+    def draw_title(self, textin, x, y):
+        text = self.font.render(textin, True, pg.Color('white'))
+        text_rect = text.get_rect(center=(x, y))
+        screen.blit(text, text_rect)
+
+    def draw_start_button(self, x, y):
+        self.start_button = Button(pg.transform.scale(pg.image.load('data/start.jpeg'), (200, 100)),
+                                   pg.transform.scale(pg.image.load('data/start.jpeg'), (200, 100)), x, y)
+        self.start_button.draw()
+
+    def draw_level_button(self, x, y):
+        self.level_button = Button(pg.transform.scale(pg.image.load('data/level.png'), (200, 100)),
+                                   pg.transform.scale(pg.image.load('data/level.png'), (200, 100)), x, y)
+        self.level_button.draw()
+
+    def draw_exit_button(self, x, y):
+        self.exit_button = Button(pg.transform.scale(pg.image.load('data/exit.jpeg'), (200, 100)),
+                                  pg.transform.scale(pg.image.load('data/exit.jpeg'), (200, 100)), x, y)
+        self.exit_button.draw()
+
+
+def start_window():
+    start_window = ScreenDesigner()  # exit, title, start, level
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if start_window.start_button.rect.collidepoint(evt.pos):
+                    return
+                if start_window.level_button.rect.collidepoint(evt.pos):
+                    level_window()
+                if start_window.exit_button.rect.collidepoint(evt.pos):
+                    terminate()
+                    break
+
+        start_window.render_start_window()
+        pg.display.flip()
+
+
+def level_window():
+    print("FFFF")
+    level_window = ScreenDesigner()  # menu, level1 + доступ, level2 + ljcneg...
+    pass
+
+
+def pause_window():
+    pause_window = ScreenDesigner()
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.KEYDOWN:
+                if evt.key == pg.K_ESCAPE:
+                    pause_button.clicks += 1
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    pause_button.clicks += 1
+                if pause_window.menu_button.rect.collidepoint(evt.pos):
+                    start_window()
+                if pause_window.exit_button.rect.collidepoint(evt.pos):
+                    terminate()
+                    break
+        if pause_button.unpause:
+            return
+        pause_window.render_pause_window()
+        pause_button.update()
+
+        pause_button.update()
+        pg.display.flip()
+
+def finish_window():
+    finish_window = ScreenDesigner()  # exit, menu, next, items, time, title
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+    finish_window.render_finish_window()
+    finish_window.update()
+    pg.display.flip()
+
 # ЗАПУСК
 if __name__ == '__main__':
     pg.init()
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
     screen.fill(pg.Color('black'))
+    start_window()
     castle = Castle(level, level + '.tmx')
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
@@ -861,6 +975,7 @@ if __name__ == '__main__':
     move_to_cell = None
     lmb_pressed = False
     inv_collide = False
+    end = False
     slash_name = 'Blue Slash Thin'
     clock = pg.time.Clock()
     castle.render()
@@ -938,7 +1053,8 @@ if __name__ == '__main__':
             pointed = False
             kill_arrow()
         if not pause_button.unpause:
-            pause()
+            # pause()
+            pause_window()
         castle.render()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
@@ -965,5 +1081,7 @@ if __name__ == '__main__':
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
+        if end:
+            finish_window()
         pg.display.flip()
         clock.tick(FPS)

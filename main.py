@@ -813,7 +813,9 @@ class ScreenDesigner:
                 font = pg.font.Font(None, 20)
                 rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                 item_image.blit(rendered, (item_image.get_width() - 20, 5))
-            screen.blit(item_image, (x + item_image.get_width() * i + (45 if unique == 1 else -45 if unique == 3 else 0), y))
+            screen.blit(item_image,
+                        (x + item_image.get_width() * i + (45 if unique == 1 else -45 if unique == 3 else 0), y))
+
     def draw_next_button(self, x, y):
         text = self.font.render('NEXT LEVEL', 1, (0, 0, 0))
         self.next_button = Button(pg.transform.scale(self.not_pressed, (350, 100)),

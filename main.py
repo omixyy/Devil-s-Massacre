@@ -786,6 +786,55 @@ class Button:
 
 
 class ScreenDesigner:
+    """
+        Класс, реализующий конструктор для создания экранов (старт, выбор уровня, пауза, финиш).
+
+        Атрибуты
+        ------
+        font: Font
+            Пиксельный шрифт
+        not_pressed: Surface
+            Изображение кнопки в ненажатом состоянии
+        pressed: Surface
+            Изображение кнопки в нажатом состоянии
+        start_button: Button
+            Кнопка, запускающая уровень
+        level_button: Button
+            Кнопка, дающая выбрать уровень
+        next_button: Button
+            Кнопка, запускающая следующий уровень
+        menu_button: Button
+            Кнопка, выхода на стартовый экран
+        exit_button: Button
+            Кнопка, выхода из игры
+
+    Методы
+    ------
+    render_start_window() :
+        Отрисовка стартого экрана
+    render_pause_window() :
+        Отрисовка экрана паузы
+    render_finish_window() :
+        Отрисовка экрана после прохождения уровня
+    render_level_window() :
+        Отрисова экрана выбора уровней
+    draw_choose_level_button() :
+        Отрисовка кнопки для перехода на выбранный уровень
+    draw_items() :
+        На экране после прохождения уровней отрисовка предметов инвентаря
+    draw_next_button() :
+        Орисовка кнопки для перехода на следующий уровень
+    draw_menu_button() :
+        Отрисовка кнопки для перехода на стартовый экран
+    draw_title() :
+        Отрисовка заголовка
+    draw_start_button() :
+        Отрисовка кнопки для запуска уровня
+    draw_level_button() :
+        Отрисовка кнопки для перехода на экран выбора уровней
+    draw_exit_button() :
+        Отрисовка кноки для выхода из игры
+    """
     def __init__(self) -> None:
         self.font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 50)
         self.not_pressed = pg.image.load(INTERFACE_DIR + '/UI_Flat_Banner_01_Upward.png')
@@ -808,7 +857,7 @@ class ScreenDesigner:
 
     def render_start_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_title("Devel`s Massacre", WIDTH // 2, HEIGHT // 4)
+        self.draw_title("Devil`s Massacre", WIDTH // 2, HEIGHT // 4)
         self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
         self.draw_start_button()
         self.draw_level_button()
@@ -890,6 +939,10 @@ class ScreenDesigner:
 
 
 def start_window() -> None:
+    """
+    Работа стартого экрана
+    :returns: None
+    """
     start_menu = ScreenDesigner()  # exit, title, start, level
     while True:
         for evt in pg.event.get():
@@ -909,6 +962,10 @@ def start_window() -> None:
 
 
 def finish_window(play_time: float) -> None:
+    """
+    Работа экрана после прохождения уровня
+    :returns: None
+    """
     global level, n_level
     window = ScreenDesigner()
     screen_cpy = screen.copy()
@@ -940,6 +997,10 @@ def finish_window(play_time: float) -> None:
 
 
 def level_window() -> None:
+    """
+    Работа экрана выбора уровней
+    :returns: None
+    """
     window = ScreenDesigner()
     while True:
         for evt in pg.event.get():
@@ -956,6 +1017,10 @@ def level_window() -> None:
 
 
 def pause_window(pause_button: Button) -> None:
+    """
+    Работа экрана паузы
+    :returns: None
+    """
     pause_menu = ScreenDesigner()
     screen_cpy = screen.copy()
     while True:
@@ -1182,11 +1247,6 @@ def terminate() -> None:
     """
     pg.quit()
     sys.exit()
-
-
-throw = False
-castle = Castle(level, level + '.tmx')
-player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
 
 
 # ЗАПУСК

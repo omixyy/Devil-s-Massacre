@@ -1184,11 +1184,6 @@ def terminate() -> None:
     sys.exit()
 
 
-throw = False
-castle = Castle(level, level + '.tmx')
-player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
-
-
 # ЗАПУСК
 if __name__ == '__main__':
     pg.init()

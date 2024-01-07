@@ -808,7 +808,7 @@ class ScreenDesigner:
 
     def render_start_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_title("Devel`s Massacre", WIDTH // 2, HEIGHT // 4)
+        self.draw_title("Devil`s Massacre", WIDTH // 2, HEIGHT // 4)
         self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
         self.draw_start_button()
         self.draw_level_button()

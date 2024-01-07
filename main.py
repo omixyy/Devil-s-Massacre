@@ -928,7 +928,11 @@ def level_window():
             if evt.type == pg.QUIT:
                 terminate()
                 break
-
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if window.menu_button.rect.collidepoint(evt.pos):
+                    start_window()
+                if window.level_button.rect.collidepoint(evt.pos):
+                    run_level()
         window.render_level_window()
         pg.display.flip()
 

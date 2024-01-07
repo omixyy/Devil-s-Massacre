@@ -6,8 +6,9 @@ import json
 import time
 from constants import *
 
-level = 'level1'
-
+list_of_levels = ['level1', 'level2']
+n_level = 0
+level = list_of_levels[n_level]
 # Считываем координаты для анимированных декораций из json
 with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
     coordinates = json.load(jsonf)
@@ -801,6 +802,21 @@ class ScreenDesigner:
         self.draw_menu_button(WIDTH // 2 + 50, HEIGHT // 4 + 225)
         self.draw_exit_button(WIDTH // 2 - 250, HEIGHT // 4 + 225)
 
+    def render_level_window(self):
+        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
+        self.draw_title('Choose level', WIDTH // 2, HEIGHT // 4)
+
+        for i in range(min(n_level + 1, len(list_of_levels))):
+            self.draw_choose_level_button(i, WIDTH // 2 - 112, HEIGHT // 4 + 70 * (i + 1))
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * (min(n_level + 1, len(list_of_levels)) + 1) + 70)
+
+    def draw_choose_level_button(self, i, x, y):
+        text = self.font.render(f'Level {i + 1} ', 1, (0, 0, 0))
+        self.level_button = Button(pg.transform.scale(self.not_pressed, (225, 100)),
+                                   pg.transform.scale(self.pressed, (225, 100)), x, y)
+        self.level_button.draw()
+        screen.blit(text, (x + 48, y + 21))
+
     def draw_items(self, x, y):
         inv = player.inventory.items_images[1::]
         unique = sum([i != [] for i in inv])
@@ -813,7 +829,9 @@ class ScreenDesigner:
                 font = pg.font.Font(None, 20)
                 rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                 item_image.blit(rendered, (item_image.get_width() - 20, 5))
-            screen.blit(item_image, (x + item_image.get_width() * i + (45 if unique == 1 else -45 if unique == 3 else 0), y))
+            screen.blit(item_image,
+                        (x + item_image.get_width() * i + (45 if unique == 1 else -45 if unique == 3 else 0), y))
+
     def draw_next_button(self, x, y):
         text = self.font.render('NEXT LEVEL', 1, (0, 0, 0))
         self.next_button = Button(pg.transform.scale(self.not_pressed, (350, 100)),
@@ -876,10 +894,12 @@ def start_window():
 
 
 def finish_window(play_time):
+    global level, n_level
     window = ScreenDesigner()
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
     surf_alpha.set_alpha(128)
     screen.blit(surf_alpha, (0, 0))
+    n_level += 1
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -892,12 +912,25 @@ def finish_window(play_time):
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-                    pass
+                    try:
+                        level = list_of_levels[n_level]
+                        run_level(level)
+                    except:
+                        start_window()
         window.render_finish_window(play_time)
         pg.display.flip()
 
 
-def level_window(): ...
+def level_window():
+    window = ScreenDesigner()
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+
+        window.render_level_window()
+        pg.display.flip()
 
 
 def pause_window(pause_button):

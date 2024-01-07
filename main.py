@@ -4,6 +4,7 @@ import sys
 import pytmx
 import json
 import time
+import datetime
 from constants import *
 
 list_of_levels = ['level1', 'level2']
@@ -1162,6 +1163,9 @@ def terminate() -> None:
 
 # ЗАПУСК
 if __name__ == '__main__':
+    a = datetime.now()
+    x = "%s:%s.%s" % (a.hour, a.minute, a.microsecond)
+    print(x)
     pg.init()
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))

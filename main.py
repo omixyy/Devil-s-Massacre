@@ -3,9 +3,10 @@ from random import choice
 import sys
 import pytmx
 import json
+import time
 from constants import *
 
-level = 'level2'
+level = 'level1'
 
 # Считываем координаты для анимированных декораций из json
 with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
@@ -792,8 +793,33 @@ class ScreenDesigner:
         self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 - 25)
         self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 125)
 
-    def render_finish_window(self):
-        pass
+    def render_finish_window(self, play_time):
+        self.draw_title("Level complete!", WIDTH // 2, HEIGHT // 4)  # title
+        self.draw_title(f"Time: {round(play_time, 2)}", WIDTH // 2, HEIGHT // 4 + 50)  # time
+        self.draw_items(WIDTH // 2 - 100, HEIGHT // 4 + 75)
+        self.draw_next_button(WIDTH // 2 - 175, HEIGHT // 4 + 150)
+        self.draw_menu_button(WIDTH // 2 + 50, HEIGHT // 4 + 225)
+        self.draw_exit_button(WIDTH // 2 - 250, HEIGHT // 4 + 225)
+
+    def draw_items(self, x, y):
+        inv = player.inventory.items_images[1::]
+        unique = sum([i != [] for i in inv])
+        for i in range(len(inv)):
+            if not inv[i]:
+                continue
+            item_image = pg.transform.scale(pg.image.load(inv[i][0]), (90, 90))
+            amount = len(inv[i])
+            if amount > 1:
+                font = pg.font.Font(None, 20)
+                rendered = font.render(f'x{amount}', 1, pg.Color('white'))
+                item_image.blit(rendered, (item_image.get_width() - 20, 5))
+            screen.blit(item_image, (x + item_image.get_width() * i + (45 if unique == 1 else -45 if unique == 3 else 0), y))
+    def draw_next_button(self, x, y):
+        text = self.font.render('NEXT LEVEL', 1, (0, 0, 0))
+        self.next_button = Button(pg.transform.scale(self.not_pressed, (350, 100)),
+                                  pg.transform.scale(self.pressed, (350, 100)), x, y)
+        self.next_button.draw()
+        screen.blit(text, (x + 64, y + 21))
 
     def draw_menu_button(self, x, y):
         text = self.font.render('MENU', 1, (0, 0, 0))
@@ -849,16 +875,26 @@ def start_window():
         pg.display.flip()
 
 
-def finish_window():
-    """window = ScreenDesigner()  # exit, menu, next, items, time, title
-        window.render_finish_window()
-        window.update()
-        pg.display.flip()"""
+def finish_window(play_time):
+    window = ScreenDesigner()
+    surf_alpha = pg.Surface((WIDTH, HEIGHT))
+    surf_alpha.set_alpha(128)
+    screen.blit(surf_alpha, (0, 0))
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if window.menu_button.rect.collidepoint(evt.pos):
+                    start_window()
+                if window.exit_button.rect.collidepoint(evt.pos):
+                    terminate()
+                    break
+                if window.next_button.rect.collidepoint(evt.pos):
+                    pass
+        window.render_finish_window(play_time)
+        pg.display.flip()
 
 
 def level_window(): ...
@@ -938,7 +974,7 @@ def run_level(lvl: str) -> None:
     move_to_cell = None
     lmb_pressed = False
     inv_collide = False
-    end = False
+    start = time.process_time()
     while running:
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
@@ -1039,10 +1075,10 @@ def run_level(lvl: str) -> None:
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
-        if end:
-            finish_window()
         pg.display.flip()
         clock.tick(FPS)
+        if sum([i != [] for i in player.inventory.items_images]) == 2:
+            finish_window(time.process_time() - start)
 
 
 def pause(pause_button) -> None:

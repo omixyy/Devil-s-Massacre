@@ -8,10 +8,6 @@ from constants import *
 
 level = 'level1'
 
-# Считываем координаты для анимированных декораций из json
-with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
-    coordinates = json.load(jsonf)
-
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
@@ -898,6 +894,7 @@ def start_window():
 
 
 def finish_window(play_time):
+    global level
     window = ScreenDesigner()
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
     surf_alpha.set_alpha(128)
@@ -915,7 +912,11 @@ def finish_window(play_time):
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-                    pass
+                    if level == 'level1':
+                        level = 'level2'
+                        run_level(level)
+                    if level == 'level2':
+                        start_window()
         screen.blit(screen_cpy, (0, 0))
         window.render_finish_window(play_time)
         pg.display.flip()
@@ -958,6 +959,9 @@ def add_items() -> None:
     Добавление различных элементов на карту.
     :returns: None
     """
+    # Считываем координаты для анимированных декораций из json
+    with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
+        coordinates = json.load(jsonf)
     for elem, crd in coordinates.items():
         for pos in crd:
             pos_x, pos_y = pos[0] * SPRITE_SIZE, pos[1] * SPRITE_SIZE
@@ -981,8 +985,20 @@ def add_items() -> None:
                 Flag(pos_x, pos_y, 'flag')
 
 
+def clear_all_groups():
+    chests.empty()
+    coins.empty()
+    animated_sprites.empty()
+    flasks.empty()
+    can_be_opened.empty()
+    keys_group.empty()
+    can_be_picked_up.empty()
+    in_chests.empty()
+
+
 def run_level(lvl: str) -> None:
     global throw, player, castle
+    clear_all_groups()
     add_items()
     for i in animated_sprites:
         if isinstance(i, Player):

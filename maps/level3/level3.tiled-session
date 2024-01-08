@@ -1,0 +1,52 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "",
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "Все файлы (*)",
+    "fileStates": {
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level1/level1.tmx": {
+            "scale": 1.3240625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 400.2832192589096,
+                "y": 320.2265754071277
+            }
+        },
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level2/level2.tmx": {
+            "scale": 1.3240625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 400.2832192589096,
+                "y": 320.2265754071277
+            }
+        },
+        "level3.tmx": {
+            "scale": 1.3240625,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 399.5279679018173,
+                "y": 319.47132405003543
+            }
+        }
+    },
+    "last.imagePath": "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/tiles/2D Pixel Dungeon Asset Pack/character and tileset",
+    "map.height": 40,
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 16,
+    "map.tileWidth": 16,
+    "map.width": 50,
+    "openFiles": [
+    ],
+    "project": "level3.tiled-project",
+    "recentFiles": [
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 16,
+        "width": 16
+    }
+}

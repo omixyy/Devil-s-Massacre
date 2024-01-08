@@ -4,6 +4,7 @@ import sys
 import pytmx
 import json
 from datetime import datetime
+from math import copysign
 from constants import *
 
 list_of_levels = ['level1', 'level2']
@@ -153,7 +154,8 @@ class MovingObject(AnimatedObject):
         return (int((self.pos[0] + SPRITE_SIZE // 2) // SPRITE_SIZE),
                 int((self.pos[1] + SPRITE_SIZE // 2) // SPRITE_SIZE))
 
-    def get_center_cell_coordinates(self): ...
+    def get_center_coordinates(self):
+        return self.pos[0] + SPRITE_SIZE // 2, self.pos[1] + SPRITE_SIZE // 2
 
 
 class Torch(AnimatedObject):
@@ -566,21 +568,22 @@ class Inventory:
                 self.thrown_elem = self.items_images[self.current_item][0]
 
     def spawn_thrown_object(self) -> None:
-        pos_x, pos_y = player.pos
-        spawn_pos = pos_x + 16, pos_y + 16
-        for x, y in [(pos_x + 16, pos_y + 16), (pos_x, pos_y + 16), (pos_x - 16, pos_y + 16),
-                     (pos_x + 16, pos_y), (pos_x - 16, pos_y),
-                     (pos_x - 16, pos_y - 16), (pos_x, pos_y - 16), (pos_x + 16, pos_y - 16)]:
-            if castle.is_free((int(x // SPRITE_SIZE), int(y // SPRITE_SIZE))):
-                spawn_pos = x, y
+        pos_x, pos_y = player.get_center_cell()
+        spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
+        for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
+                     (pos_x + 1, pos_y), (pos_x - 1, pos_y),
+                     (pos_x - 1, pos_y - 1), (pos_x, pos_y - 1), (pos_x + 1, pos_y - 1)]:
+            if castle.is_free((x, y)):
+                spawn_pos = list(map(int, (x * SPRITE_SIZE, y * SPRITE_SIZE)))
+                break
         if 'coin' in self.thrown_elem:
-            Coin(int(spawn_pos[0]), int(spawn_pos[1]), 'coin')
+            Coin(spawn_pos[0], spawn_pos[1], 'coin')
         elif 'flasks_2' in self.thrown_elem:
-            TeleportFlask(int(spawn_pos[0]), int(spawn_pos[1]), 'flasks_2')
+            TeleportFlask(spawn_pos[0], spawn_pos[1], 'flasks_2')
         elif 'flasks_4' in self.thrown_elem:
-            HealFlask(int(spawn_pos[0]), int(spawn_pos[1]), 'flasks_4')
+            HealFlask(spawn_pos[0], spawn_pos[1], 'flasks_4')
         elif 'keys_2' in self.thrown_elem:
-            Key(int(spawn_pos[0]), int(spawn_pos[1]), 'keys_2')
+            Key(spawn_pos[0], spawn_pos[1], 'keys_2')
 
 
 class Castle:
@@ -1224,7 +1227,7 @@ def run_level(lvl: str) -> None:
             player.inventory.throwing = None
         pg.display.flip()
         clock.tick(FPS)
-        if sum([i != [] for i in player.inventory.items_images]) == 2:
+        if sum([i != [] for i in player.inventory.items_images]) == 4:
             finish = datetime.now()
             finish_window(round((finish - start).total_seconds(), 3))
 

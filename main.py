@@ -6,7 +6,8 @@ import json
 from datetime import datetime
 from constants import *
 
-list_of_levels = ['level1', 'level2', 'level3']
+list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
+available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
 
@@ -622,7 +623,7 @@ class Castle:
         self.walls = [0, 1, 2, 3, 4, 5,
                       10, 15, 20, 25, 30, 35,
                       40, 41, 42, 43, 44, 45,
-                      50, 51, 52, 53, 54, 55, 36, 37]
+                      50, 51, 52, 53, 54, 55]
 
     def render(self) -> None:
         for y in range(self.height):
@@ -858,6 +859,7 @@ class ScreenDesigner:
         self.exit_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
                                   pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 + 150,
                                   select=pg.transform.scale(self.pressed, (200, 100)))
+        self.list_levels_buttons = []
 
     def render_start_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
@@ -881,17 +883,19 @@ class ScreenDesigner:
     def render_level_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
         self.draw_title('Choose level', WIDTH // 2, HEIGHT // 4)
-
-        for i in range(min(n_level + 1, len(list_of_levels))):
-            self.draw_choose_level_button(i, WIDTH // 2 - 112, HEIGHT // 4 + 70 * (i + 1))
-        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * (min(n_level + 1, len(list_of_levels)) + 1) + 70)
+        for i in range(5):
+            self.draw_choose_level_button(i, WIDTH // 2 - 240 + (i // 3) * 240,
+                                          HEIGHT // 4 + 70 * (i + 1) - (i // 3) * 211)
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * 3 + 80)
 
     def draw_choose_level_button(self, i: int, x: int, y: int) -> None:
         text = self.font.render(f'Level {i + 1} ', 1, (0, 0, 0))
         self.level_button = Button(pg.transform.scale(self.not_pressed, (225, 100)),
-                                   pg.transform.scale(self.pressed, (225, 100)), x, y)
+                                   pg.transform.scale(self.pressed, (225, 100)), x, y,
+                                   select=pg.transform.scale(self.pressed, (225, 100)))
         self.level_button.draw()
         screen.blit(text, (x + 48, y + 21))
+        self.list_levels_buttons.append(self.level_button)
 
     def draw_items(self, x: int, y: int) -> None:
         inv = player.inventory.items_images[1::]
@@ -965,21 +969,26 @@ def start_window() -> None:
         pg.display.flip()
 
 
-def finish_window(play_time: float) -> None:
+def finish_window(lvl: str, play_time: float) -> None:
     """
     Работа экрана после прохождения уровня
 
     Параметры
     ------
+    :param str lvl: Пройденный игроком уровень
     :param float play_time: Время, за которое пройден уровень
     :returns: None
     """
-    global level, n_level
+    global level, available_levels
     window = ScreenDesigner()
     screen_cpy = screen.copy()
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
     surf_alpha.set_alpha(128)
-    n_level += 1
+    available_levels.append(lvl)
+    try:
+        available_levels.append(list_of_levels[list_of_levels.index(lvl) + 1])
+    except IndexError:
+        pass
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1018,8 +1027,10 @@ def level_window() -> None:
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if window.menu_button.rect.collidepoint(evt.pos):
                     start_window()
-                """if window.level_button.rect.collidepoint(evt.pos):
-                    run_level()"""
+                if any([i.rect.collidepoint(evt.pos) for i in window.list_levels_buttons]):
+                    t = list_of_levels[[i.rect.collidepoint(evt.pos) for i in window.list_levels_buttons].index(True)]
+                    if t in available_levels:
+                        run_level(t)
         window.render_level_window()
         pg.display.flip()
 

@@ -3,33 +3,44 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "",
+    "activeFile": "level3.tmx",
     "expandedProjectPaths": [
+        "."
     ],
     "file.lastUsedOpenFilter": "Все файлы (*)",
     "fileStates": {
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level1/Dungeon_Tileset.tsx": {
+            "scaleInDock": 1
+        },
         "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level1/level1.tmx": {
             "scale": 1.3240625,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 394.24120840217137,
-                "y": 314.18456455038944
+                "x": 393.48595704507915,
+                "y": 313.42931319329716
             }
+        },
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level2/Dungeon_Tileset.tsx": {
+            "scaleInDock": 1
         },
         "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level2/level2.tmx": {
             "scale": 1.3240625,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 399.5279679018173,
-                "y": 319.47132405003543
+                "x": 393.48595704507915,
+                "y": 313.42931319329716
             }
+        },
+        "Dungeon_Tileset.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "level3.tmx": {
             "scale": 1.3240625,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 399.5279679018173,
-                "y": 319.47132405003543
+                "x": 398.77271654472503,
+                "y": 318.71607269294316
             }
         }
     },
@@ -40,9 +51,17 @@
     "map.tileWidth": 16,
     "map.width": 50,
     "openFiles": [
+        "level3.tmx",
+        "Dungeon_Tileset.tsx",
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level1/level1.tmx",
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level2/level2.tmx"
     ],
     "project": "level3.tiled-project",
     "recentFiles": [
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level2/level2.tmx",
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level1/level1.tmx",
+        "Dungeon_Tileset.tsx",
+        "level3.tmx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {

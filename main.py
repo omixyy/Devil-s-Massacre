@@ -623,7 +623,8 @@ class Castle:
         self.walls = [0, 1, 2, 3, 4, 5,
                       10, 15, 20, 25, 30, 35,
                       40, 41, 42, 43, 44, 45,
-                      50, 51, 52, 53, 54, 55]
+                      50, 51, 52, 53, 54, 55,
+                      36, 37]
 
     def render(self) -> None:
         for y in range(self.height):
@@ -645,7 +646,7 @@ class Castle:
             x, y = queue.pop(0)
             for dx, dy in (1, 0), (0, 1), (-1, 0), (0, -1):
                 next_x, next_y = x + dx, y + dy
-                if 0 <= next_x <= self.width and 0 <= next_y <= self.height and \
+                if 0 <= next_x < self.width and 0 <= next_y < self.height and \
                         self.is_free((next_x, next_y)) and distance[next_y][next_x] == inf:
                     distance[next_y][next_x] = distance[y][x] + 1
                     prev[next_y][next_x] = (x, y)

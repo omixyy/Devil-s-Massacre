@@ -893,7 +893,7 @@ class ScreenDesigner:
         self.level_button = Button(pg.transform.scale(self.not_pressed, (225, 100)),
                                    pg.transform.scale(self.pressed, (225, 100)), x, y,
                                    select=pg.transform.scale(self.pressed, (225, 100)))
-        self.level_button.draw()
+        self.level_button.draw_changing_pic()
         screen.blit(text, (x + 48, y + 21))
         self.list_levels_buttons.append(self.level_button)
 
@@ -1249,7 +1249,7 @@ def run_level(lvl: str) -> None:
         clock.tick(FPS)
         if sum([i != [] for i in player.inventory.items_images]) == 4:
             finish = datetime.now()
-            finish_window(round((finish - start).total_seconds(), 3))
+            finish_window(lvl, round((finish - start).total_seconds(), 3))
 
 
 def kill_arrow() -> None:

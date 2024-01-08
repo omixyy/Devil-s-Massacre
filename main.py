@@ -1187,6 +1187,7 @@ def run_level(lvl: str) -> None:
             elif event.type == pg.MOUSEBUTTONUP:
                 if event.button == 1:
                     lmb_pressed = False
+                    throw = False
             elif event.type == pg.KEYUP:
                 if event.key == pg.K_LSHIFT:
                     shift_pressed = False

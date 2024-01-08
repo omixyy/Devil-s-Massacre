@@ -4,7 +4,6 @@ import sys
 import pytmx
 import json
 from datetime import datetime
-from math import copysign
 from constants import *
 
 list_of_levels = ['level1', 'level2']

@@ -508,7 +508,7 @@ class Inventory:
 
     def __init__(self) -> None:
         self.items_images = [[ITEMS_DIR + '/sword12.png'], [], [], []]
-        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory.png'), (170, 50))
+        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory1.png'), (170, 50))
         self.health_image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/heart.png'), (32, 32))
         self.y_pos = HEIGHT
         self.mouse_collide = False
@@ -523,15 +523,15 @@ class Inventory:
         for ind, cell in enumerate(self.items_images):
             for item in cell:
                 item_image = pg.transform.scale(pg.image.load(item), (30, 30))
-                screen.blit(item_image, (331 + item_image.get_width() * ind + 6 * ind, self.y_pos + 15))
+                screen.blit(item_image, (331 + item_image.get_width() * ind + 6 * ind, self.y_pos + 13))
                 amount = len(cell)
                 if amount > 1:
                     font = pg.font.Font(None, 15)
                     rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                     screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 35))
         cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/square_right_2.png'), (33, 33))
-        screen.blit(cur_item_mark, (330 + cur_item_mark.get_width() *
-                                    self.current_item + 3 * self.current_item, self.y_pos + 15))
+        screen.blit(cur_item_mark, (328 + cur_item_mark.get_width() *
+                                    self.current_item + 4 * self.current_item, self.y_pos + 13))
 
     def update(self) -> None:
         if self.mouse_collide and self.y_pos >= 590:
@@ -738,7 +738,8 @@ class Button:
         увеличивает или уменьшает y_pos.
     """
 
-    def __init__(self, image: pg.Surface, pressed_image: pg.Surface, x: int, y=None, select=None) -> None:
+    def __init__(self, image: pg.Surface, pressed_image: pg.Surface,
+                 x: int, y: int = None, select: pg.Surface = None) -> None:
         self.image = image
         self.pressed_image = pressed_image
         self.current_image = self.image
@@ -793,21 +794,21 @@ class ScreenDesigner:
 
     Атрибуты
     ------
-    font: Font
+    font : Font
         Пиксельный шрифт
-    not_pressed: Surface
+    not_pressed : Surface
         Изображение кнопки в ненажатом состоянии
-    pressed: Surface
+    pressed : Surface
         Изображение кнопки в нажатом состоянии
-    start_button: Button
+    start_button : Button
         Кнопка, запускающая уровень
-    level_button: Button
+    level_button : Button
         Кнопка, дающая выбрать уровень
-    next_button: Button
+    next_button : Button
         Кнопка, запускающая следующий уровень
-    menu_button: Button
+    menu_button : Button
         Кнопка, выхода на стартовый экран
-    exit_button: Button
+    exit_button : Button
         Кнопка, выхода из игры
 
     Методы
@@ -837,6 +838,7 @@ class ScreenDesigner:
     draw_exit_button() :
         Отрисовка кнопки для выхода из игры
     """
+
     def __init__(self) -> None:
         self.font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 50)
         self.not_pressed = pg.image.load(INTERFACE_DIR + '/UI_Flat_Banner_01_Upward.png')
@@ -942,7 +944,7 @@ class ScreenDesigner:
 
 def start_window() -> None:
     """
-    Работа стартого экрана
+    Работа стартового экрана
     :returns: None
     """
     start_menu = ScreenDesigner()  # exit, title, start, level
@@ -966,6 +968,10 @@ def start_window() -> None:
 def finish_window(play_time: float) -> None:
     """
     Работа экрана после прохождения уровня
+
+    Параметры
+    ------
+    :param float play_time: Время, за которое пройден уровень
     :returns: None
     """
     global level, n_level
@@ -1021,6 +1027,7 @@ def level_window() -> None:
 def pause_window(pause_button: Button) -> None:
     """
     Работа экрана паузы
+    :param Button pause_button: Кнопка паузы
     :returns: None
     """
     pause_menu = ScreenDesigner()
@@ -1045,7 +1052,6 @@ def pause_window(pause_button: Button) -> None:
             return
         screen.blit(screen_cpy, (0, 0))
         pause_menu.render_pause_window()
-        pause_button.update()
         pause_button.update()
         pg.display.flip()
         clock.tick(FPS)
@@ -1112,8 +1118,11 @@ def run_level(lvl: str) -> None:
             i.kill()
     castle = Castle(lvl, lvl + '.tmx')
     player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
-    pause_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Pause1.png'), (50, 50)),
-                          pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Play1.png'), (50, 50)), 750)
+    pause_button = Button(pg.transform.scale(
+        pg.image.load(
+            INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a1.png'), (50, 50)),
+        pg.transform.scale(pg.image.load(
+            INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a2.png'), (50, 50)), 745)
     castle.render()
     slash_name = 'Blue Slash Thin'
     running = True

@@ -970,26 +970,24 @@ def start_window() -> None:
         pg.display.flip()
 
 
-def finish_window(lvl: str, play_time: float) -> None:
+def finish_window(play_time: float) -> None:
     """
     Работа экрана после прохождения уровня
 
     Параметры
     ------
-    lvl : str
-        Пройденный игроком уровень
     play_time : float
         Время, за которое пройден уровень
     :returns: None
     """
-    global level, available_levels
+    global level, available_levels, n_level
     window = ScreenDesigner()
     screen_cpy = screen.copy()
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
     surf_alpha.set_alpha(128)
-    available_levels.append(lvl)
+    available_levels.append(level)
     try:
-        available_levels.append(list_of_levels[list_of_levels.index(lvl) + 1])
+        available_levels.append(list_of_levels[list_of_levels.index(level) + 1])
         level = available_levels[-1]
     except IndexError:
         pass
@@ -1005,10 +1003,13 @@ def finish_window(lvl: str, play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-                    if lvl in ['level4', 'level5']:
+                    if level in ['level4', 'level5']:
+                        n_level = 0
+                        level = list_of_levels[0]
                         start_window()
                     else:
-                        run_level('level' + str(int(lvl[-1]) + 1))
+                        n_level += 1
+                        run_level(level)
         window.render_finish_window(play_time)
         pg.display.flip()
         clock.tick(FPS)
@@ -1021,6 +1022,7 @@ def level_window() -> None:
     Работа экрана выбора уровней
     :returns: None
     """
+    global level, n_level
     window = ScreenDesigner()
     while True:
         for evt in pg.event.get():
@@ -1031,9 +1033,10 @@ def level_window() -> None:
                 if window.menu_button.rect.collidepoint(evt.pos):
                     start_window()
                 if any([i.rect.collidepoint(evt.pos) for i in window.list_levels_buttons]):
-                    t = list_of_levels[[i.rect.collidepoint(evt.pos) for i in window.list_levels_buttons].index(True)]
-                    if t in available_levels:
-                        run_level(t)
+                    n_level = [i.rect.collidepoint(evt.pos) for i in window.list_levels_buttons].index(True)
+                    level = list_of_levels[n_level]
+                    if level in available_levels:
+                        run_level(level)
         window.render_level_window()
         pg.display.flip()
 
@@ -1253,7 +1256,7 @@ def run_level(lvl: str) -> None:
         clock.tick(FPS)
         if sum([i != [] for i in player.inventory.items_images]) == 4:
             finish = datetime.now()
-            finish_window(lvl, round((finish - start).total_seconds(), 3))
+            finish_window(round((finish - start).total_seconds(), 3))
 
 
 def kill_arrow() -> None:

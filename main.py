@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from constants import *
 
-list_of_levels = ['level3', 'level2', 'level3', 'level4', 'level5']
+list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
@@ -990,6 +990,7 @@ def finish_window(lvl: str, play_time: float) -> None:
     available_levels.append(lvl)
     try:
         available_levels.append(list_of_levels[list_of_levels.index(lvl) + 1])
+        level = available_levels[-1]
     except IndexError:
         pass
     while True:
@@ -1075,6 +1076,7 @@ def add_items() -> None:
     Добавление различных элементов на карту.
     :returns: None
     """
+
     # Считываем координаты для анимированных декораций из json
     with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
         coordinates = json.load(jsonf)

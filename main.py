@@ -759,10 +759,6 @@ class Button:
         self.clicks = 0
 
     def draw(self) -> None:
-        if self.pressed:
-            self.current_image = self.pressed_image
-        else:
-            self.current_image = self.image
         screen.blit(self.current_image, (self.x, self.y_pos))
 
     def draw_changing_pic(self) -> None:
@@ -770,9 +766,9 @@ class Button:
         self.rect.x = self.x
         self.rect.y = self.y_pos
         if self.rect.collidepoint(pg.mouse.get_pos()) and self.select is not None:
-            self.current_image = self.select
+            self.current_image = self.select.copy()
         else:
-            self.current_image = self.image
+            self.current_image = self.image.copy()
         screen.blit(self.current_image, (self.x, self.y_pos))
 
     def update(self) -> None:
@@ -782,10 +778,10 @@ class Button:
             self.y_pos += PLAYER_SPEED
         self.rect.topleft = (self.x, self.y_pos)
         if self.clicks % 2 == 1:
-            self.current_image = self.pressed_image
+            self.current_image = self.pressed_image.copy()
             self.unpause = False
         else:
-            self.current_image = self.image
+            self.current_image = self.image.copy()
             self.unpause = True
         screen.blit(self.current_image, (self.x, self.y_pos))
 
@@ -1047,6 +1043,7 @@ def pause_window(pause_button: Button) -> None:
     :param Button pause_button: Кнопка паузы
     :returns: None
     """
+
     pause_menu = ScreenDesigner()
     screen_cpy = screen.copy()
     while True:
@@ -1141,7 +1138,6 @@ def run_level(lvl: str) -> None:
             INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a1.png'), (50, 50)),
         pg.transform.scale(pg.image.load(
             INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a2.png'), (50, 50)), 745)
-    castle.render()
     slash_name = 'Blue Slash Thin'
     running = True
     pointed = False
@@ -1151,6 +1147,7 @@ def run_level(lvl: str) -> None:
     move_to_cell = None
     lmb_pressed = False
     inv_collide = False
+    continued = False
     start = datetime.now()
     while running:
         pressed = pg.key.get_pressed()
@@ -1224,8 +1221,6 @@ def run_level(lvl: str) -> None:
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
-        if not pause_button.unpause:
-            pause_window(pause_button)
         castle.render()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
@@ -1254,6 +1249,13 @@ def run_level(lvl: str) -> None:
             player.inventory.throwing = None
         pg.display.flip()
         clock.tick(FPS)
+        if continued and not pause_button.unpause:
+            pause_window(pause_button)
+            continued = False
+        if not pause_button.unpause:
+            continued = True
+
+        # TODO: Переделать условие окончания раунда
         if sum([i != [] for i in player.inventory.items_images]) == 4:
             finish = datetime.now()
             finish_window(round((finish - start).total_seconds(), 3))

@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from constants import *
 
-list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
+list_of_levels = ['level3', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
@@ -976,8 +976,10 @@ def finish_window(lvl: str, play_time: float) -> None:
 
     Параметры
     ------
-    :param str lvl: Пройденный игроком уровень
-    :param float play_time: Время, за которое пройден уровень
+    lvl : str
+        Пройденный игроком уровень
+    play_time : float
+        Время, за которое пройден уровень
     :returns: None
     """
     global level, available_levels

@@ -1004,11 +1004,10 @@ def finish_window(lvl: str, play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-                    try:
-                        level = list_of_levels[n_level]
-                        run_level(level)
-                    except IndexError:
+                    if lvl in ['level4', 'level5']:
                         start_window()
+                    else:
+                        run_level('level' + str(int(lvl[-1]) + 1))
         window.render_finish_window(play_time)
         pg.display.flip()
         clock.tick(FPS)

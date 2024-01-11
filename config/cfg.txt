@@ -1,1 +1,0 @@
-K_up, K_down, K_left, K_right, K_LSHIFT, K_LCTRL, K_ESCAPE

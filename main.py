@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from constants import *
 
-list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
+list_of_levels = ['level4', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
@@ -624,7 +624,7 @@ class Castle:
                       10, 15, 20, 25, 30, 35,
                       40, 41, 42, 43, 44, 45,
                       50, 51, 52, 53, 54, 55,
-                      136, 137]
+                      36, 37]
 
     def render(self) -> None:
         for y in range(self.height):

@@ -1063,13 +1063,10 @@ def start_window() -> None:
 def finish_window(play_time: float) -> None:
     """
     Работа экрана после прохождения уровня
-
-    Параметры
-    ------
-    play_time : float
-        Время, за которое пройден уровень
+    :param play_time: Время игры
     :returns: None
     """
+
     global level, available_levels, n_level
     window = ScreenDesigner()
     screen_cpy = screen.copy()
@@ -1189,7 +1186,7 @@ def settings_window() -> None:
 def pause_window(pause_button: Button) -> None:
     """
     Работа экрана паузы
-    :param Button pause_button: Кнопка паузы
+    :param pause_button: Кнопка паузы
     :returns: None
     """
 
@@ -1255,7 +1252,14 @@ def add_items() -> None:
                 Flag(pos_x, pos_y, 'flag')
 
 
-def spawn_object(elem_dir) -> None:
+def spawn_object(elem_dir: str) -> None:
+    """
+    Создаёт объект на карте при открытии сундука или
+    выкидывании объекта из инвентаря
+    :param elem_dir: Путь до картинки объекта
+    :returns: None
+    """
+
     pos_x, pos_y = player.get_center_cell()
     spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
     for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
@@ -1289,6 +1293,11 @@ def clear_all_groups() -> None:
 
 
 def show_exit_text() -> None:
+    """
+    Выводит текст при приближении к воротам
+    :return: None
+    """
+
     font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 20)
     rendered = font.render('Press "E" to exit level', 1, pg.Color('white'))
     screen.blit(rendered, (player.pos[0] - (rendered.get_size()[0] - SPRITE_SIZE) // 2, player.pos[1] - 20))
@@ -1467,7 +1476,8 @@ def terminate() -> None:
     sys.exit()
 
 
-throw: bool
+# Самые широко используемые переменные
+throw:  bool
 player: Player
 castle: Castle
 

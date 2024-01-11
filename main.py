@@ -339,7 +339,7 @@ class Chest(AnimatedObject):
             self.dropped = True
             return choice([HealFlask(None, None, 'flasks_4'),
                            TeleportFlask(None, None, 'flasks_2'),
-                           Key(None, None, 'keys_2')])
+                           Coin(None, None, 'coin')])
 
 
 class Player(MovingObject):
@@ -605,24 +605,6 @@ class Inventory:
                 screen.blit(self.throwing, (mx - 15, my - 15))
             if self.items_images[self.current_item]:
                 self.thrown_elem = self.items_images[self.current_item][0]
-
-    def spawn_thrown_object(self) -> None:
-        pos_x, pos_y = player.get_center_cell()
-        spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
-        for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
-                     (pos_x + 1, pos_y), (pos_x - 1, pos_y),
-                     (pos_x - 1, pos_y - 1), (pos_x, pos_y - 1), (pos_x + 1, pos_y - 1)]:
-            if castle.is_free((x, y)):
-                spawn_pos = list(map(int, (x * SPRITE_SIZE, y * SPRITE_SIZE)))
-                break
-        if 'coin' in self.thrown_elem:
-            Coin(spawn_pos[0], spawn_pos[1], 'coin')
-        elif 'flasks_2' in self.thrown_elem:
-            TeleportFlask(spawn_pos[0], spawn_pos[1], 'flasks_2')
-        elif 'flasks_4' in self.thrown_elem:
-            HealFlask(spawn_pos[0], spawn_pos[1], 'flasks_4')
-        elif 'keys_2' in self.thrown_elem:
-            Key(spawn_pos[0], spawn_pos[1], 'keys_2')
 
 
 class Castle:
@@ -1273,6 +1255,23 @@ def add_items() -> None:
                 Flag(pos_x, pos_y, 'flag')
 
 
+def spawn_object(elem_dir) -> None:
+    pos_x, pos_y = player.get_center_cell()
+    spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
+    for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
+                 (pos_x + 1, pos_y), (pos_x - 1, pos_y),
+                 (pos_x - 1, pos_y - 1), (pos_x, pos_y - 1), (pos_x + 1, pos_y - 1)]:
+        if castle.is_free((x, y)):
+            spawn_pos = list(map(int, (x * SPRITE_SIZE, y * SPRITE_SIZE)))
+            break
+    if 'coin' in elem_dir:
+        Coin(spawn_pos[0], spawn_pos[1], 'coin')
+    elif 'flasks_2' in elem_dir:
+        TeleportFlask(spawn_pos[0], spawn_pos[1], 'flasks_2')
+    elif 'flasks_4' in elem_dir:
+        HealFlask(spawn_pos[0], spawn_pos[1], 'flasks_4')
+
+
 def clear_all_groups() -> None:
     """
     Очистка групп от спрайтов
@@ -1421,7 +1420,7 @@ def run_level(lvl: str) -> None:
             chest.update()
             if chest.opened and not chest.dropped:
                 drop = chest.get_drop()
-                player.inventory.add(drop, drop.dir)
+                spawn_object(drop.dir + drop.filename)
         for sprite in can_be_picked_up:
             sprite.update()
         player.inventory.draw()
@@ -1431,7 +1430,7 @@ def run_level(lvl: str) -> None:
         if throw:
             player.inventory.throw()
         elif player.inventory.throwing is not None:
-            player.inventory.spawn_thrown_object()
+            spawn_object(player.inventory.thrown_elem)
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
@@ -1466,6 +1465,11 @@ def terminate() -> None:
     """
     pg.quit()
     sys.exit()
+
+
+throw: bool
+player: Player
+castle: Castle
 
 
 # ЗАПУСК

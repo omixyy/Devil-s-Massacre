@@ -548,9 +548,10 @@ class Inventory:
                     font = pg.font.Font(None, 15)
                     rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                     screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 35))
-        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/UI_Flat_Select_01a1.png'), (33, 33))
-        screen.blit(cur_item_mark, (328 + cur_item_mark.get_width() *
-                                    self.current_item + 4 * self.current_item, self.y_pos + 13))
+        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/UI_Flat_Select_01a1.png'), (39, 44))
+        screen.blit(cur_item_mark, (325 + cur_item_mark.get_width() *
+                                    self.current_item - self.current_item - bool(self.current_item)
+                                    - self.current_item // 3, self.y_pos + 7))
 
     def update(self) -> None:
         if self.mouse_collide and self.y_pos >= 590:

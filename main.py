@@ -548,7 +548,7 @@ class Inventory:
                     font = pg.font.Font(None, 15)
                     rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                     screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 35))
-        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/square_right_2.png'), (33, 33))
+        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/UI_Flat_Select_01a1.png'), (33, 33))
         screen.blit(cur_item_mark, (328 + cur_item_mark.get_width() *
                                     self.current_item + 4 * self.current_item, self.y_pos + 13))
 

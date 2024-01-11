@@ -1252,22 +1252,26 @@ def add_items() -> None:
                 Flag(pos_x, pos_y, 'flag')
 
 
-def spawn_object(elem_dir: str) -> None:
+def spawn_object(elem_dir: str, from_chest: bool = False) -> None:
     """
     Создаёт объект на карте при открытии сундука или
     выкидывании объекта из инвентаря
+    :param from_chest: Показывает, получен ли предмет из сундука или нет
     :param elem_dir: Путь до картинки объекта
     :returns: None
     """
 
-    pos_x, pos_y = player.get_center_cell()
-    spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
-    for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
-                 (pos_x + 1, pos_y), (pos_x - 1, pos_y),
-                 (pos_x - 1, pos_y - 1), (pos_x, pos_y - 1), (pos_x + 1, pos_y - 1)]:
-        if castle.is_free((x, y)):
-            spawn_pos = list(map(int, (x * SPRITE_SIZE, y * SPRITE_SIZE)))
-            break
+    if not from_chest:
+        pos_x, pos_y = player.get_center_cell()
+        spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
+        for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
+                     (pos_x + 1, pos_y), (pos_x - 1, pos_y),
+                     (pos_x - 1, pos_y - 1), (pos_x, pos_y - 1), (pos_x + 1, pos_y - 1)]:
+            if castle.is_free((x, y)):
+                spawn_pos = list(map(int, (x * SPRITE_SIZE, y * SPRITE_SIZE)))
+                break
+    else:
+        spawn_pos = player.get_left_up_cell()[0] * SPRITE_SIZE, player.get_left_up_cell()[1] * SPRITE_SIZE
     if 'coin' in elem_dir:
         Coin(spawn_pos[0], spawn_pos[1], 'coin')
     elif 'flasks_2' in elem_dir:
@@ -1429,7 +1433,7 @@ def run_level(lvl: str) -> None:
             chest.update()
             if chest.opened and not chest.dropped:
                 drop = chest.get_drop()
-                spawn_object(drop.dir + drop.filename)
+                spawn_object(drop.dir + drop.filename, from_chest=True)
         for sprite in can_be_picked_up:
             sprite.update()
         player.inventory.draw()

@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from constants import *
 
-list_of_levels = ['level4', 'level2', 'level3', 'level4', 'level5']
+list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
@@ -326,7 +326,7 @@ class Player(MovingObject):
     """
     Класс, реализующий объект игрока
 
-    Аттрибуты
+    Атрибуты
     ------
     current_slash : int
         Показывает текущий какой кадр удара
@@ -339,6 +339,21 @@ class Player(MovingObject):
     inventory : Inventory
         Объект, в котором содержатся предметы из инвентаря игрока,
         а так же отрисовываются сердечки, обозначающие здоровье.
+
+    Методы
+    ------
+    handle_keypress() :
+        Обрабатывает нажатия на WASD и в соответствии с нажатыми клавишами передвигает игрока
+    move_by_pointer() :
+        Передвигает игрока к поставленному указателю
+    slash() :
+        Анимация удара мечом
+    use_current_item() :
+        Использование выбранного в инвентаре предмета
+    has_free_space() :
+        Проверяет наличие свободного места в инвентаре для конкретного предмета
+    has_key() :
+        Проверяет, есть ли ключ в инвентаре
     """
 
     def __init__(self, x: int, y: int, filename: str) -> None:
@@ -459,6 +474,9 @@ class Player(MovingObject):
         return (any([file in i[0] and len(i) < 4 for i in self.inventory.items_images if i]) or
                 any([len(i) == 0 for i in self.inventory.items_images]))
 
+    def has_key(self) -> bool:
+        return any([any([KEYS_DIR in j for j in i]) for i in self.inventory.items_images])
+
 
 class Pointer(AnimatedObject):
     """
@@ -524,7 +542,7 @@ class Inventory:
         for ind, cell in enumerate(self.items_images):
             for item in cell:
                 item_image = pg.transform.scale(pg.image.load(item), (30, 30))
-                screen.blit(item_image, (331 + item_image.get_width() * ind + 6 * ind, self.y_pos + 13))
+                screen.blit(item_image, (330 + item_image.get_width() * ind + 7 * ind, self.y_pos + 13))
                 amount = len(cell)
                 if amount > 1:
                     font = pg.font.Font(None, 15)
@@ -1119,9 +1137,20 @@ def clear_all_groups() -> None:
     in_chests.empty()
 
 
+def show_exit_text() -> None:
+    font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 20)
+    rendered = font.render('Press "E" to exit level', 1, pg.Color('white'))
+    screen.blit(rendered, (player.pos[0] - (rendered.get_size()[0] - SPRITE_SIZE) // 2, player.pos[1] - 20))
+
+
 def run_level(lvl: str) -> None:
     """
     Запуск уровня
+
+    Параметры
+    ------
+    lvl : str
+        Уровень, который нужно запустить
     :returns: None
     """
 
@@ -1148,6 +1177,7 @@ def run_level(lvl: str) -> None:
     lmb_pressed = False
     inv_collide = False
     continued = False
+    can_finish = False
     start = datetime.now()
     while running:
         pressed = pg.key.get_pressed()
@@ -1168,6 +1198,9 @@ def run_level(lvl: str) -> None:
                     player.inventory.current_item = 2
                 elif event.key == pg.K_4:
                     player.inventory.current_item = 3
+                elif event.key == pg.K_e and can_finish:
+                    finish = datetime.now()
+                    finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     lmb_pressed = True
@@ -1247,6 +1280,8 @@ def run_level(lvl: str) -> None:
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
+        if can_finish:
+            show_exit_text()
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:
@@ -1254,11 +1289,8 @@ def run_level(lvl: str) -> None:
             continued = False
         if not pause_button.unpause:
             continued = True
-
-        # TODO: Переделать условие окончания раунда
-        if sum([i != [] for i in player.inventory.items_images]) == 4:
-            finish = datetime.now()
-            finish_window(round((finish - start).total_seconds(), 3))
+        can_finish = (player.get_center_cell() in [(43, 37), (44, 37), (45, 37), (46, 37),
+                                                   (43, 38), (44, 38), (45, 48), (46, 38)] and player.has_key())
 
 
 def kill_arrow() -> None:

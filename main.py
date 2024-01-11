@@ -3,13 +3,13 @@ from random import choice
 import sys
 import pytmx
 import json
-from datetime import datetime
 from constants import *
 
-list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
-available_levels = ['level1']
-n_level = 0
-level = list_of_levels[n_level]
+level = 'level2'
+
+# Считываем координаты для анимированных декораций из json
+with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
+    coordinates = json.load(jsonf)
 
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
@@ -19,26 +19,6 @@ can_be_opened = pg.sprite.Group()
 keys_group = pg.sprite.Group()
 can_be_picked_up = pg.sprite.Group()
 in_chests = pg.sprite.Group()
-
-# Считываем конфиг игрока
-with open('config/cfg.txt', 'r', encoding='utf8') as read_cfg:
-    reader = read_cfg.read().split(', ')
-    text_names = list()
-    config = list()
-    for i in reader:
-        try:
-            config.append(eval(f'pg.{i}'))
-            text_names.append(str(i))
-        except AttributeError:
-            config.append(eval(f'pg.{str(i).upper()}'))
-            text_names.append(str(i).upper())
-    upward = config[0]
-    downward = config[1]
-    left = config[2]
-    right = config[3]
-    attack_1 = config[4]
-    attack_2 = config[5]
-    pause = config[6]
 
 
 class AnimatedObject(pg.sprite.Sprite):
@@ -82,7 +62,7 @@ class AnimatedObject(pg.sprite.Sprite):
         Изменяет кадр анимации.
     """
 
-    def __init__(self, group: list | None, directory: str, x: int | None, y: int | None, filename: str) -> None:
+    def __init__(self, group: list, directory: str, x: int, y: int, filename: str) -> None:
         """
         Если x и y - None, то объект не должен появиться на карте.
         Это сделано для того, чтобы объект можно было "положить" в сундук,
@@ -91,7 +71,7 @@ class AnimatedObject(pg.sprite.Sprite):
         super().__init__(*group)
         self.filename = filename
         self.dir = directory
-        self.images = [directory + f'/{filename}_{k}.png' for k in range(1, 5)]
+        self.images = [directory + f'/{filename}_{i}.png' for i in range(1, 5)]
         if x is not None and y is not None:
             self.do_blit = True
             self.current_image = 0
@@ -174,8 +154,7 @@ class MovingObject(AnimatedObject):
         return (int((self.pos[0] + SPRITE_SIZE // 2) // SPRITE_SIZE),
                 int((self.pos[1] + SPRITE_SIZE // 2) // SPRITE_SIZE))
 
-    def get_center_coordinates(self):
-        return self.pos[0] + SPRITE_SIZE // 2, self.pos[1] + SPRITE_SIZE // 2
+    def get_center_cell_coordinates(self): ...
 
 
 class Torch(AnimatedObject):
@@ -206,7 +185,7 @@ class Key(AnimatedObject):
         Прекращает анимацию, если есть пересечение с игроком.
     """
 
-    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+    def __init__(self, x: int, y: int, filename: str) -> None:
         if x is not None and y is not None:
             group = [keys_group, animated_sprites, can_be_picked_up]
         else:
@@ -230,7 +209,7 @@ class Coin(AnimatedObject):
         Прекращает анимацию, если есть пересечение с игроком.
     """
 
-    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+    def __init__(self, x: int, y: int, filename: str) -> None:
         if x is not None and y is not None:
             group = [coins, animated_sprites, can_be_picked_up]
         else:
@@ -255,7 +234,7 @@ class TeleportFlask(AnimatedObject):
         Прекращает анимацию, если есть пересечение с игроком.
     """
 
-    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+    def __init__(self, x: int, y: int, filename: str) -> None:
         if x is not None and y is not None:
             group = [flasks, animated_sprites, can_be_picked_up]
         else:
@@ -280,7 +259,7 @@ class HealFlask(AnimatedObject):
         Прекращает анимацию, если есть пересечение с игроком.
     """
 
-    def __init__(self, x: int | None, y: int | None, filename: str) -> None:
+    def __init__(self, x: int, y: int, filename: str) -> None:
         if x is not None and y is not None:
             group = [flasks, animated_sprites, can_be_picked_up]
         else:
@@ -329,7 +308,7 @@ class Chest(AnimatedObject):
             self.do_animation = False
 
     def animate_opening(self) -> None:
-        self.images = [CHESTS_DIR + f'/chest_open_{j}.png' for j in range(1, 5)]
+        self.images = [CHESTS_DIR + f'/chest_open_{i}.png' for i in range(1, 5)]
         self.current_image = 0
         self.image = pg.image.load(self.images[self.current_image])
         self.animate()
@@ -339,14 +318,14 @@ class Chest(AnimatedObject):
             self.dropped = True
             return choice([HealFlask(None, None, 'flasks_4'),
                            TeleportFlask(None, None, 'flasks_2'),
-                           Coin(None, None, 'coin')])
+                           Key(None, None, 'keys_2')])
 
 
 class Player(MovingObject):
     """
     Класс, реализующий объект игрока
 
-    Атрибуты
+    Аттрибуты
     ------
     current_slash : int
         Показывает текущий какой кадр удара
@@ -359,21 +338,6 @@ class Player(MovingObject):
     inventory : Inventory
         Объект, в котором содержатся предметы из инвентаря игрока,
         а так же отрисовываются сердечки, обозначающие здоровье.
-
-    Методы
-    ------
-    handle_keypress() :
-        Обрабатывает нажатия на WASD и в соответствии с нажатыми клавишами передвигает игрока
-    move_by_pointer() :
-        Передвигает игрока к поставленному указателю
-    slash() :
-        Анимация удара мечом
-    use_current_item() :
-        Использование выбранного в инвентаре предмета
-    has_free_space() :
-        Проверяет наличие свободного места в инвентаре для конкретного предмета
-    has_key() :
-        Проверяет, есть ли ключ в инвентаре
     """
 
     def __init__(self, x: int, y: int, filename: str) -> None:
@@ -389,23 +353,23 @@ class Player(MovingObject):
         current_pos_lu = self.get_left_up_cell()
         current_pos_ru = self.get_right_up_cell()
         current_pos_ld = self.get_left_down_cell()
-        if keys[downward]:
+        if keys[pg.K_s]:
             if castle.is_free(current_pos_rd) and castle.is_free(current_pos_ld) and \
                     castle.is_free((current_pos_rd[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and \
                     castle.is_free((current_pos_ld[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
                 self.move_by_delta(dx=0, dy=PLAYER_SPEED)
-        if keys[upward]:
+        if keys[pg.K_w]:
             if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and \
                     castle.is_free((current_pos_ru[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and \
                     castle.is_free((current_pos_lu[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
                 self.move_by_delta(dx=0, dy=-PLAYER_SPEED)
-        if keys[left]:
+        if keys[pg.K_a]:
             if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and \
                     castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and \
                     castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
                 self.move_by_delta(dx=-PLAYER_SPEED, dy=0)
                 self.flip = True
-        if keys[right]:
+        if keys[pg.K_d]:
             if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
                     castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
                     castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):
@@ -467,7 +431,7 @@ class Player(MovingObject):
         elif 'Wide' in foldername:
             slash_delay = 80
         if self.do_slash:
-            images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
+            images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, frames + 1)]
             tick = pg.time.get_ticks()
             image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
             if tick - self.slash_tick >= slash_delay:
@@ -491,11 +455,8 @@ class Player(MovingObject):
 
     def has_free_space(self, file: str) -> bool:
         file += '_1.png'
-        return (any([file in j[0] and len(j) < 4 for j in self.inventory.items_images if j]) or
-                any([len(j) == 0 for j in self.inventory.items_images]))
-
-    def has_key(self) -> bool:
-        return any([any([KEYS_DIR in j for j in k]) for k in self.inventory.items_images])
+        return (any([file in i[0] and len(i) < 4 for i in self.inventory.items_images if i]) or
+                any([len(i) == 0 for i in self.inventory.items_images]))
 
 
 class Pointer(AnimatedObject):
@@ -547,7 +508,7 @@ class Inventory:
 
     def __init__(self) -> None:
         self.items_images = [[ITEMS_DIR + '/sword12.png'], [], [], []]
-        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory1.png'), (170, 50))
+        self.image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/inventory.png'), (170, 50))
         self.health_image = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/heart.png'), (32, 32))
         self.y_pos = HEIGHT
         self.mouse_collide = False
@@ -557,21 +518,20 @@ class Inventory:
 
     def draw(self) -> None:
         screen.blit(self.image, (315, self.y_pos))
-        for j in range(player.health):
-            screen.blit(self.health_image, (20 + 50 * j, self.y_pos + 10))
+        for i in range(player.health):
+            screen.blit(self.health_image, (20 + 50 * i, self.y_pos + 10))
         for ind, cell in enumerate(self.items_images):
             for item in cell:
                 item_image = pg.transform.scale(pg.image.load(item), (30, 30))
-                screen.blit(item_image, (330 + item_image.get_width() * ind + 7 * ind, self.y_pos + 13))
+                screen.blit(item_image, (331 + item_image.get_width() * ind + 6 * ind, self.y_pos + 15))
                 amount = len(cell)
                 if amount > 1:
                     font = pg.font.Font(None, 15)
                     rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                     screen.blit(rendered, (348 + item_image.get_width() * ind + 7 * ind, self.y_pos + 35))
-        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/UI_Flat_Select_01a1.png'), (39, 44))
-        screen.blit(cur_item_mark, (325 + cur_item_mark.get_width() *
-                                    self.current_item - self.current_item - bool(self.current_item)
-                                    - self.current_item // 3, self.y_pos + 7))
+        cur_item_mark = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/square_right_2.png'), (33, 33))
+        screen.blit(cur_item_mark, (330 + cur_item_mark.get_width() *
+                                    self.current_item + 3 * self.current_item, self.y_pos + 15))
 
     def update(self) -> None:
         if self.mouse_collide and self.y_pos >= 590:
@@ -583,15 +543,15 @@ class Inventory:
         if not throw:
             for cell in range(len(self.items_images)):
                 file = direct + '/' + obj.filename + '_1.png'
-                if not self.items_images[cell] and not any([file in j for j in self.items_images]):
+                if not self.items_images[cell] and not any([file in i for i in self.items_images]):
                     self.items_images[cell].append(file)
                     break
                 elif self.items_images[cell] and self.items_images[cell][0] == file and len(
                         self.items_images[cell]) < 4:
                     self.items_images[cell].append(file)
-            for j in can_be_picked_up:
-                if j is obj:
-                    j.kill()
+            for i in can_be_picked_up:
+                if i is obj:
+                    i.kill()
 
     def remove(self) -> None:
         del self.items_images[self.current_item][0]
@@ -605,6 +565,23 @@ class Inventory:
                 screen.blit(self.throwing, (mx - 15, my - 15))
             if self.items_images[self.current_item]:
                 self.thrown_elem = self.items_images[self.current_item][0]
+
+    def spawn_thrown_object(self) -> None:
+        pos_x, pos_y = player.pos
+        spawn_pos = pos_x + 16, pos_y + 16
+        for x, y in [(pos_x + 16, pos_y + 16), (pos_x, pos_y + 16), (pos_x - 16, pos_y + 16),
+                     (pos_x + 16, pos_y), (pos_x - 16, pos_y),
+                     (pos_x - 16, pos_y - 16), (pos_x, pos_y - 16), (pos_x + 16, pos_y - 16)]:
+            if castle.is_free((int(x // SPRITE_SIZE), int(y // SPRITE_SIZE))):
+                spawn_pos = x, y
+        if 'coin' in self.thrown_elem:
+            Coin(int(spawn_pos[0]), int(spawn_pos[1]), 'coin')
+        elif 'flasks_2' in self.thrown_elem:
+            TeleportFlask(int(spawn_pos[0]), int(spawn_pos[1]), 'flasks_2')
+        elif 'flasks_4' in self.thrown_elem:
+            HealFlask(int(spawn_pos[0]), int(spawn_pos[1]), 'flasks_4')
+        elif 'keys_2' in self.thrown_elem:
+            Key(int(spawn_pos[0]), int(spawn_pos[1]), 'keys_2')
 
 
 class Castle:
@@ -644,8 +621,7 @@ class Castle:
         self.walls = [0, 1, 2, 3, 4, 5,
                       10, 15, 20, 25, 30, 35,
                       40, 41, 42, 43, 44, 45,
-                      50, 51, 52, 53, 54, 55,
-                      36, 37]
+                      50, 51, 52, 53, 54, 55]
 
     def render(self) -> None:
         for y in range(self.height):
@@ -688,18 +664,18 @@ class Castle:
     def get_distance_oy(self, position: tuple[int, int]) -> tuple[int, int]:
         dist_up, dist_down = -1, -1
         meet_player = False
-        for j in range(self.height):
-            if (position[0], j) == position:
+        for i in range(self.height):
+            if (position[0], i) == position:
                 meet_player = True
             if not meet_player:
-                if not self.is_free((position[0], j)):
+                if not self.is_free((position[0], i)):
                     dist_up = 0
                 else:
                     dist_up += 1
             else:
-                if (position[0], j) == position:
+                if (position[0], i) == position:
                     dist_down = 0
-                elif self.is_free((position[0], j)):
+                elif self.is_free((position[0], i)):
                     dist_down += 1
                 else:
                     break
@@ -708,22 +684,131 @@ class Castle:
     def get_distance_ox(self, position: tuple[int, int]) -> tuple[int, int]:
         dist_right, dist_left = -1, -1
         meet_player = False
-        for j in range(self.width):
-            if (j, position[1]) == position:
+        for i in range(self.width):
+            if (i, position[1]) == position:
                 meet_player = True
             if not meet_player:
-                if not self.is_free((j, position[1])):
+                if not self.is_free((i, position[1])):
                     dist_left = 0
                 else:
                     dist_left += 1
             else:
-                if (j, position[1]) == position:
+                if (i, position[1]) == position:
                     dist_right = 0
-                elif self.is_free((j, position[1])):
+                elif self.is_free((i, position[1])):
                     dist_right += 1
                 else:
                     break
         return dist_left, dist_right
+
+
+class Monster(MovingObject, Castle):
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__(x, y, filename)
+        self.current_slash = -1
+        self.slash_tick = pg.time.get_ticks()
+        self.do_slash = False
+        self.health = 1
+
+    def find_path_step(self, start: tuple[int, int], target: tuple[int, int]) -> tuple[int, int]:
+        inf = 1000
+        x, y = start
+        distance = [[inf] * self.width for _ in range(self.height)]
+        distance[y][x] = 0
+        prev = [[(None, None)] * self.width for _ in range(self.height)]
+        queue = [(x, y)]
+        while queue:
+            x, y = queue.pop(0)
+            for dx, dy in (1, 0), (0, 1), (-1, 0), (0, -1):
+                next_x, next_y = x + dx, y + dy
+                if 0 <= next_x <= self.width and 0 <= next_y <= self.height and \
+                        self.is_free((next_x, next_y)) and distance[next_y][next_x] == inf:
+                    distance[next_y][next_x] = distance[y][x] + 1
+                    prev[next_y][next_x] = (x, y)
+                    queue.append((next_x, next_y))
+        x, y = target
+        if distance[y][x] == inf or start == target:
+            return start
+        while prev[y][x] != start:
+            x, y = prev[y][x]
+        return x, y
+
+    def find_zone(self, radius: int):
+        self.detect_zone = pg.sprite.Sprite()
+        self.detect_zone.image = pg.Surface((80, 89), pg.SRCALPHA)
+        pg.draw.circle(self.detect_zone.image, (0, 0, 0), (40, 40), 40)
+        self.detect_zone.rect = pg.Rect(self.collide_vertex, 0, 0).inflate(radius, radius)
+
+    def move_to_player(self, where: tuple[int, int]):
+        if self.current_direction[0] > 0:
+            if (castle.get_distance_ox(self.get_left_up_cell())[1] <
+                    castle.get_distance_ox(self.get_left_down_cell())[1]):
+                self.collide_vertex = self.get_left_up_cell()
+            elif (castle.get_distance_ox(self.get_left_up_cell())[1] >
+                  castle.get_distance_ox(self.get_left_down_cell())[1]):
+                self.collide_vertex = self.get_left_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+
+        if self.current_direction[0] < 0:
+            if (castle.get_distance_ox(self.get_right_up_cell())[0] <
+                    castle.get_distance_ox(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_up_cell()
+            elif (castle.get_distance_ox(self.get_right_up_cell())[0] >
+                  castle.get_distance_ox(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+
+        if self.current_direction[1] > 0:
+            if (castle.get_distance_oy(self.get_left_up_cell())[1] <
+                    castle.get_distance_oy(self.get_right_up_cell())[1]):
+                self.collide_vertex = self.get_left_up_cell()
+            elif (castle.get_distance_oy(self.get_left_up_cell())[1] >
+                  castle.get_distance_oy(self.get_right_up_cell())[1]):
+                self.collide_vertex = self.get_right_up_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+
+        if self.current_direction[1] < 0:
+            if (castle.get_distance_oy(self.get_left_down_cell())[0] <
+                    castle.get_distance_oy(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_left_down_cell()
+            elif (castle.get_distance_oy(self.get_left_down_cell())[0] >
+                  castle.get_distance_oy(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+        next_pos = castle.find_path_step(self.collide_vertex, where)
+        dir_x, dir_y = next_pos[0] - self.collide_vertex[0], next_pos[1] - self.collide_vertex[1]
+        self.current_direction = (dir_x, dir_y)
+        self.flip = dir_x < 0
+        self.move_by_delta(dx=dir_x * PLAYER_SPEED // 2, dy=dir_y * PLAYER_SPEED // 2)
+
+    def slash(self, foldername: str, frames=6) -> None:
+        slash_delay = self.animation_delay
+        if 'Group' in foldername:
+            slash_delay = 110
+        elif 'Thin' in foldername:
+            slash_delay = 50
+        elif 'Wide' in foldername:
+            slash_delay = 80
+        if self.do_slash:
+            images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, frames + 1)]
+            tick = pg.time.get_ticks()
+            image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+            if tick - self.slash_tick >= slash_delay:
+                self.current_slash = (self.current_slash + 1) % frames
+                image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+                self.slash_tick = pg.time.get_ticks()
+            if not self.flip:
+                screen.blit(image, (self.pos[0], self.pos[1] - 10))
+            else:
+                screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
+                            (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
+        if self.current_slash == frames - 1:
+            self.current_slash = -1
+            self.do_slash = False
 
 
 class Button:
@@ -761,12 +846,10 @@ class Button:
         увеличивает или уменьшает y_pos.
     """
 
-    def __init__(self, image: pg.Surface, pressed_image: pg.Surface,
-                 x: int, y: int = None, select: pg.Surface = None) -> None:
+    def __init__(self, image: pg.Surface, pressed_image: pg.Surface, x: int, y=None) -> None:
         self.image = image
         self.pressed_image = pressed_image
         self.current_image = self.image
-        self.select = select
         if y:
             self.y_pos = y
         else:
@@ -780,16 +863,10 @@ class Button:
         self.clicks = 0
 
     def draw(self) -> None:
-        screen.blit(self.current_image, (self.x, self.y_pos))
-
-    def draw_changing_pic(self) -> None:
-        self.rect = self.current_image.get_rect()
-        self.rect.x = self.x
-        self.rect.y = self.y_pos
-        if self.rect.collidepoint(pg.mouse.get_pos()) and self.select is not None:
-            self.current_image = self.select.copy()
+        if self.pressed:
+            self.current_image = self.pressed_image
         else:
-            self.current_image = self.image.copy()
+            self.current_image = self.image
         screen.blit(self.current_image, (self.x, self.y_pos))
 
     def update(self) -> None:
@@ -799,247 +876,69 @@ class Button:
             self.y_pos += PLAYER_SPEED
         self.rect.topleft = (self.x, self.y_pos)
         if self.clicks % 2 == 1:
-            self.current_image = self.pressed_image.copy()
+            self.current_image = self.pressed_image
             self.unpause = False
         else:
-            self.current_image = self.image.copy()
+            self.current_image = self.image
             self.unpause = True
         screen.blit(self.current_image, (self.x, self.y_pos))
 
 
 class ScreenDesigner:
-    """
-    Класс, реализующий конструктор для создания экранов (старт, выбор уровня, пауза, финиш).
-
-    Атрибуты
-    ------
-    font : Font
-        Пиксельный шрифт
-    not_pressed : Surface
-        Изображение кнопки в ненажатом состоянии
-    pressed : Surface
-        Изображение кнопки в нажатом состоянии
-    start_button : Button
-        Кнопка, запускающая уровень
-    level_button : Button
-        Кнопка, дающая выбрать уровень
-    next_button : Button
-        Кнопка, запускающая следующий уровень
-    menu_button : Button
-        Кнопка, выхода на стартовый экран
-    exit_button : Button
-        Кнопка, выхода из игры
-
-    Методы
-    ------
-    render_start_window() :
-        Отрисовка стартового экрана
-    render_pause_window() :
-        Отрисовка экрана паузы
-    render_finish_window() :
-        Отрисовка экрана после прохождения уровня
-    render_level_window() :
-        Отрисовка экрана выбора уровней
-    draw_choose_level_button() :
-        Отрисовка кнопки для перехода на выбранный уровень
-    draw_items() :
-        На экране после прохождения уровней отрисовка предметов инвентаря
-    draw_next_button() :
-        Отрисовка кнопки для перехода на следующий уровень
-    draw_menu_button() :
-        Отрисовка кнопки для перехода на стартовый экран
-    draw_title() :
-        Отрисовка заголовка
-    draw_start_button() :
-        Отрисовка кнопки для запуска уровня
-    draw_level_button() :
-        Отрисовка кнопки для перехода на экран выбора уровней
-    draw_exit_button() :
-        Отрисовка кнопки для выхода из игры
-    """
-
-    def __init__(self) -> None:
+    def __init__(self):
         self.font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 50)
         self.not_pressed = pg.image.load(INTERFACE_DIR + '/UI_Flat_Banner_01_Upward.png')
         self.pressed = pg.image.load(INTERFACE_DIR + '/UI_Flat_Banner_01_Downward.png')
-        self.start_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
-                                   pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 60,
-                                   select=pg.transform.scale(self.pressed, (200, 100)))
-        self.level_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
-                                   pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 + 15,
-                                   select=pg.transform.scale(self.pressed, (200, 100)))
-        self.next_button = Button(pg.transform.scale(self.not_pressed, (350, 100)),
-                                  pg.transform.scale(self.pressed, (350, 100)), WIDTH // 2 - 175, HEIGHT // 4 + 150,
-                                  select=pg.transform.scale(self.pressed, (350, 100)))
+
+    def render_start_window(self):
+        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
+        self.draw_title("Devel`s Massacre", WIDTH // 2, HEIGHT // 4)
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 150)
+        self.draw_start_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
+        self.draw_level_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
+
+    def render_pause_window(self):
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 - 25)
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 125)
+
+    def render_finish_window(self):
+        pass
+
+    def draw_menu_button(self, x, y):
+        text = self.font.render('MENU', 1, (0, 0, 0))
         self.menu_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
-                                  pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 25,
-                                  select=pg.transform.scale(self.pressed, (200, 100)))
-        self.settings_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
-                                      pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 + 90,
-                                      select=pg.transform.scale(self.pressed, (200, 100)))
-        self.exit_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
-                                  pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 + 150,
-                                  select=pg.transform.scale(self.pressed, (200, 100)))
-        self.back_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
-                                  pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 25,
-                                  select=pg.transform.scale(self.pressed, (200, 100)))
-        self.list_levels_buttons = []
+                                  pg.transform.scale(self.pressed, (200, 100)), x, y)
+        self.menu_button.draw()
+        screen.blit(text, (x + 43, y + 21))
 
-    def render_start_window(self) -> None:
-        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_title("Devil`s Massacre", WIDTH // 2, HEIGHT // 4)
-        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 165)
-        self.draw_start_button()
-        self.draw_level_button()
-        self.draw_settings_button(WIDTH // 2 - 100, HEIGHT // 2 + 90)
-
-    def render_settings_window(self) -> None:
-        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_back_button(WIDTH // 2 - 100, HEIGHT // 2 + 180)
-
-    def render_pause_window(self) -> None:
-        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
-        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 150)
-        self.draw_settings_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
-
-    def render_finish_window(self, play_time):
-        self.draw_title("Level complete!", WIDTH // 2, HEIGHT // 4)  # title
-        self.draw_title(f"Time: {play_time} seconds", WIDTH // 2, HEIGHT // 4 + 50)  # time
-        self.draw_items(WIDTH // 2 - 100, HEIGHT // 4 + 75)
-        self.draw_next_button()
-        self.draw_menu_button(WIDTH // 2 + 50, HEIGHT // 4 + 225)
-        self.draw_exit_button(WIDTH // 2 - 250, HEIGHT // 4 + 225)
-
-    def render_level_window(self) -> None:
-        screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_title('Choose level', WIDTH // 2, HEIGHT // 4)
-        for j in range(5):
-            self.draw_choose_level_button(j, WIDTH // 2 - 240 + (j // 3) * 240,
-                                          HEIGHT // 4 + 70 * (j + 1) - (j // 3) * 211)
-        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * 3 + 80)
-
-    def draw_choose_level_button(self, j: int, x: int, y: int) -> None:
-        text = self.font.render(f'Level {j + 1} ', 1, (0, 0, 0))
-        self.level_button = Button(pg.transform.scale(self.not_pressed, (225, 100)),
-                                   pg.transform.scale(self.pressed, (225, 100)), x, y,
-                                   select=pg.transform.scale(self.pressed, (225, 100)))
-        self.level_button.draw_changing_pic()
-        screen.blit(text, (x + 48, y + 21))
-        self.list_levels_buttons.append(self.level_button)
-
-    def draw_items(self, x: int, y: int) -> None:
-        inv = player.inventory.items_images[1::]
-        unique = sum([j != [] for j in inv])
-        for j in range(len(inv)):
-            if not inv[j]:
-                continue
-            item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
-            amount = len(inv[j])
-            if amount > 1:
-                font = pg.font.Font(None, 20)
-                rendered = font.render(f'x{amount}', 1, pg.Color('white'))
-                item_image.blit(rendered, (item_image.get_width() - 20, 5))
-            screen.blit(item_image, (x + item_image.get_width() * j + (
-                45 if unique == 1 else -45 if unique == 3 else 0), y))
-
-    def draw_next_button(self) -> None:
-        self.next_button.draw_changing_pic()
-        screen.blit(self.font.render('NEXT LEVEL', 1, (0, 0, 0)),
-                    (self.next_button.x + 64, self.next_button.y_pos + 21))
-
-    def draw_back_button(self, x: int, y: int):
-        self.back_button.x = x
-        self.back_button.y_pos = y
-        self.back_button.draw_changing_pic()
-        screen.blit(self.font.render('BACK', 1, (0, 0, 0)), (x + 50, y + 21))
-
-    def draw_settings_button(self, x: int, y: int):
-        self.settings_button.x = x
-        self.settings_button.y_pos = y
-        self.settings_button.draw_changing_pic()
-        screen.blit(self.font.render('SETS', 1, (0, 0, 0)),
-                    (x + 55, y + 21))
-
-    def draw_menu_button(self, x: int, y: int) -> None:
-        self.menu_button.x = x
-        self.menu_button.y_pos = y
-        self.menu_button.draw_changing_pic()
-        screen.blit(self.font.render('MENU', 1, (0, 0, 0)), (x + 43, y + 21))
-
-    def draw_title(self, text_in: str, x: int, y: int) -> None:
+    def draw_title(self, text_in, x, y):
         text = self.font.render(text_in, True, pg.Color('bisque'))
         text_rect = text.get_rect(center=(x, y))
         screen.blit(text, text_rect)
 
-    def draw_start_button(self) -> None:
-        self.start_button.draw_changing_pic()
-        screen.blit(self.font.render('START', 1, (0, 0, 0)),
-                    (self.start_button.x + 42, self.start_button.y_pos + 21))
+    def draw_start_button(self, x, y):
+        text = self.font.render('START', 1, (0, 0, 0))
+        self.start_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                   pg.transform.scale(self.pressed, (200, 100)), x, y)
+        self.start_button.draw()
+        screen.blit(text, (x + 42, y + 21))
 
-    def draw_level_button(self) -> None:
-        self.level_button.draw_changing_pic()
-        screen.blit(self.font.render('LEVEL', 1, (0, 0, 0)),
-                    (self.level_button.x + 42, self.level_button.y_pos + 21))
+    def draw_level_button(self, x, y):
+        text = self.font.render('LEVEL', 1, (0, 0, 0))
+        self.level_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                   pg.transform.scale(self.pressed, (200, 100)), x, y)
+        self.level_button.draw()
+        screen.blit(text, (x + 42, y + 21))
 
-    def draw_exit_button(self, x: int, y: int) -> None:
-        self.exit_button.x = x
-        self.exit_button.y_pos = y
-        self.exit_button.draw_changing_pic()
-        screen.blit(self.font.render('EXIT', 1, (0, 0, 0)),
-                    (x + 65, y + 21))
-
-
-class InputBox:
-    def __init__(self, x, y, width, height, font_size):
-        self.rect = pg.Rect(x, y, width, height)
-        self.color_inactive = pg.Color('bisque3')
-        self.color_active = pg.Color('bisque')
-        self.color = self.color_inactive
-        self.text = ''
-        self.font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', font_size)
-        self.active = False
-
-    def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(event.pos):
-                if not self.active:
-                    self.text = ''
-                self.active = not self.active
-            else:
-                self.active = False
-            self.color = self.color_active if self.active else self.color_inactive
-        if event.type == pg.KEYDOWN:
-            if self.active:
-                if event.key == pg.K_BACKSPACE:
-                    self.text = ''
-                else:
-                    key_name = pg.key.name(event.key)
-                    if all([j.isalpha() or j.isdigit() or j == ' ' for j in key_name]):
-                        self.text = f'K_{key_name}'
-                        if 'shift' in key_name:
-                            if 'left' in key_name:
-                                self.text = 'K_LSHIFT'
-                            elif 'right' in key_name:
-                                self.text = 'K_RSHIFT'
-                        elif 'ctrl' in key_name:
-                            if 'left' in key_name:
-                                self.text = 'K_LCTRL'
-                            elif 'right' in key_name:
-                                self.text = 'K_RSHIFT'
-
-    def draw(self):
-        width = max(200, self.font.size(self.text)[0] + 10)
-        self.rect.w = width
-        text_surface = self.font.render(self.text, True, pg.Color('white'))
-        screen.blit(text_surface, (self.rect.x + 5, self.rect.y + 5))
-        pg.draw.rect(screen, self.color, self.rect, 2)
+    def draw_exit_button(self, x, y):
+        text = self.font.render('EXIT', 1, (0, 0, 0))
+        self.exit_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                  pg.transform.scale(self.pressed, (200, 100)), x, y)
+        self.exit_button.draw()
+        screen.blit(text, (x + 65, y + 21))
 
 
-def start_window() -> None:
-    """
-    Работа стартового экрана
-    :returns: None
-    """
+def start_window():
     start_menu = ScreenDesigner()  # exit, title, start, level
     while True:
         for evt in pg.event.get():
@@ -1051,157 +950,38 @@ def start_window() -> None:
                     run_level(level)
                 if start_menu.level_button.rect.collidepoint(evt.pos):
                     level_window()
-                if start_menu.settings_button.rect.collidepoint(evt.pos):
-                    settings_window()
                 if start_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
+
         start_menu.render_start_window()
         pg.display.flip()
 
 
-def finish_window(play_time: float) -> None:
-    """
-    Работа экрана после прохождения уровня
-
-    Параметры
-    ------
-    play_time : float
-        Время, за которое пройден уровень
-    :returns: None
-    """
-    global level, available_levels, n_level
-    window = ScreenDesigner()
-    screen_cpy = screen.copy()
-    surf_alpha = pg.Surface((WIDTH, HEIGHT))
-    surf_alpha.set_alpha(128)
-    available_levels.append(level)
-    try:
-        available_levels.append(list_of_levels[list_of_levels.index(level) + 1])
-        level = available_levels[-1]
-    except IndexError:
-        pass
+def finish_window():
+    """window = ScreenDesigner()  # exit, menu, next, items, time, title
+        window.render_finish_window()
+        window.update()
+        pg.display.flip()"""
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                if window.menu_button.rect.collidepoint(evt.pos):
-                    start_window()
-                if window.exit_button.rect.collidepoint(evt.pos):
-                    terminate()
-                    break
-                if window.next_button.rect.collidepoint(evt.pos):
-                    if level in ['level5']:
-                        n_level = 0
-                        level = list_of_levels[0]
-                        start_window()
-                    else:
-                        n_level += 1
-                        run_level(level)
-        window.render_finish_window(play_time)
-        pg.display.flip()
-        clock.tick(FPS)
-        screen.blit(screen_cpy, (0, 0))
-        screen.blit(surf_alpha, (0, 0))
 
 
-def level_window() -> None:
-    """
-    Работа экрана выбора уровней
-    :returns: None
-    """
-
-    global level, n_level
-    window = ScreenDesigner()
-    while True:
-        for evt in pg.event.get():
-            if evt.type == pg.QUIT:
-                terminate()
-                break
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                if window.menu_button.rect.collidepoint(evt.pos):
-                    start_window()
-                if any([j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons]):
-                    n_level = [j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons].index(True)
-                    level = list_of_levels[n_level]
-                    if level in available_levels:
-                        run_level(level)
-        window.render_level_window()
-        pg.display.flip()
+def level_window(): ...
 
 
-def settings_window() -> None:
-    """
-     Работа экрана настроек
-    :returns: None
-    """
-
-    boxes_list = [InputBox(400, 100 + j * 60, 50, 40, 25) for j in range(7)]
-    box_to_text = {
-        boxes_list[0]: 'Upward',
-        boxes_list[1]: 'Downward',
-        boxes_list[2]: 'Left',
-        boxes_list[3]: 'Right',
-        boxes_list[4]: 'Attack 1',
-        boxes_list[5]: 'Attack 2',
-        boxes_list[6]: 'Pause'
-    }
-    cross_indexes = list()
-    font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 25)
-    for k in range(7):
-        boxes_list[k].text = text_names[k]
-    window = ScreenDesigner()
-    while True:
-        texts = [k.text for k in boxes_list]
-        if all(texts) and not len(set(texts)) < len(texts):
-            cross_indexes.clear()
-        for evt in pg.event.get():
-            if evt.type == pg.QUIT:
-                terminate()
-                break
-            elif evt.type == pg.MOUSEBUTTONDOWN:
-                if window.back_button.rect.collidepoint(evt.pos):
-                    if all(texts) and not len(set(texts)) < len(texts):
-                        with open('config/cfg.txt', 'w', encoding='utf8') as save_cfg:
-                            save_cfg.write(', '.join([field.text for field in boxes_list]))
-                        return
-                    else:
-                        for ind, t in enumerate(boxes_list):
-                            if not t.text or texts.count(t.text) > 1:
-                                cross_indexes.append((600, 100 + ind * 60))
-            for box in boxes_list:
-                box.handle_event(evt)
-        window.render_settings_window()
-        for k in cross_indexes:
-            screen.blit(pg.transform.scale(pg.image.load(
-                INTERFACE_DIR + '/UI_Flat_Cross_Large.png'), (33, 33)), (k[0], k[1]))
-        for box in boxes_list:
-            text = font.render(box_to_text[box], True, pg.Color('bisque'))
-            screen.blit(text, (250, 105 + boxes_list.index(box) * 60))
-            box.draw()
-        txt = font.render("Note: before using new settings, restart the game", True, pg.Color('red'))
-        screen.blit(txt, ((WIDTH - txt.get_width()) // 2, 50))
-        pg.display.flip()
-
-
-def pause_window(pause_button: Button) -> None:
-    """
-    Работа экрана паузы
-    :param Button pause_button: Кнопка паузы
-    :returns: None
-    """
-
+def pause_window(pause_button):
     pause_menu = ScreenDesigner()
-    screen_cpy = screen.copy()
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
             elif evt.type == pg.KEYDOWN:
-                if evt.key == pause:
+                if evt.key == pg.K_ESCAPE:
                     pause_button.clicks += 1
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
@@ -1211,16 +991,13 @@ def pause_window(pause_button: Button) -> None:
                 if pause_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
-                if pause_menu.settings_button.rect.collidepoint(evt.pos):
-                    settings_window()
-        pause_button.y_pos = 590
         if pause_button.unpause:
             return
-        screen.blit(screen_cpy, (0, 0))
         pause_menu.render_pause_window()
         pause_button.update()
+
+        pause_button.update()
         pg.display.flip()
-        clock.tick(FPS)
 
 
 def add_items() -> None:
@@ -1228,10 +1005,6 @@ def add_items() -> None:
     Добавление различных элементов на карту.
     :returns: None
     """
-
-    # Считываем координаты для анимированных декораций из json
-    with open(f'maps/{level}/elements_pos.json', 'r', encoding='utf8') as jsonf:
-        coordinates = json.load(jsonf)
     for elem, crd in coordinates.items():
         for pos in crd:
             pos_x, pos_y = pos[0] * SPRITE_SIZE, pos[1] * SPRITE_SIZE
@@ -1255,69 +1028,16 @@ def add_items() -> None:
                 Flag(pos_x, pos_y, 'flag')
 
 
-def spawn_object(elem_dir) -> None:
-    pos_x, pos_y = player.get_center_cell()
-    spawn_pos = (pos_x + 1) * SPRITE_SIZE, (pos_y + 1) * SPRITE_SIZE
-    for x, y in [(pos_x + 1, pos_y + 1), (pos_x, pos_y + 1), (pos_x - 1, pos_y + 1),
-                 (pos_x + 1, pos_y), (pos_x - 1, pos_y),
-                 (pos_x - 1, pos_y - 1), (pos_x, pos_y - 1), (pos_x + 1, pos_y - 1)]:
-        if castle.is_free((x, y)):
-            spawn_pos = list(map(int, (x * SPRITE_SIZE, y * SPRITE_SIZE)))
-            break
-    if 'coin' in elem_dir:
-        Coin(spawn_pos[0], spawn_pos[1], 'coin')
-    elif 'flasks_2' in elem_dir:
-        TeleportFlask(spawn_pos[0], spawn_pos[1], 'flasks_2')
-    elif 'flasks_4' in elem_dir:
-        HealFlask(spawn_pos[0], spawn_pos[1], 'flasks_4')
-
-
-def clear_all_groups() -> None:
-    """
-    Очистка групп от спрайтов
-    :returns: None
-    """
-
-    chests.empty()
-    coins.empty()
-    animated_sprites.empty()
-    flasks.empty()
-    can_be_opened.empty()
-    keys_group.empty()
-    can_be_picked_up.empty()
-    in_chests.empty()
-
-
-def show_exit_text() -> None:
-    font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 20)
-    rendered = font.render('Press "E" to exit level', 1, pg.Color('white'))
-    screen.blit(rendered, (player.pos[0] - (rendered.get_size()[0] - SPRITE_SIZE) // 2, player.pos[1] - 20))
-
-
 def run_level(lvl: str) -> None:
-    """
-    Запуск уровня
-
-    Параметры
-    ------
-    lvl : str
-        Уровень, который нужно запустить
-    :returns: None
-    """
-
     global throw, player, castle
-    clear_all_groups()
-    add_items()
-    for j in animated_sprites:
-        if isinstance(j, Player):
-            j.kill()
+    for i in animated_sprites:
+        if isinstance(i, Player):
+            i.kill()
     castle = Castle(lvl, lvl + '.tmx')
     player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
-    pause_button = Button(pg.transform.scale(
-        pg.image.load(
-            INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a1.png'), (50, 50)),
-        pg.transform.scale(pg.image.load(
-            INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a2.png'), (50, 50)), 745)
+    pause_button = Button(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Pause1.png'), (50, 50)),
+                          pg.transform.scale(pg.image.load(INTERFACE_DIR + '/A_Play1.png'), (50, 50)), 750)
+    castle.render()
     slash_name = 'Blue Slash Thin'
     running = True
     pointed = False
@@ -1327,9 +1047,7 @@ def run_level(lvl: str) -> None:
     move_to_cell = None
     lmb_pressed = False
     inv_collide = False
-    continued = False
-    can_finish = False
-    start = datetime.now()
+    end = False
     while running:
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
@@ -1337,9 +1055,9 @@ def run_level(lvl: str) -> None:
                 running = False
                 terminate()
             elif event.type == pg.KEYDOWN:
-                if event.key == attack_1:
+                if event.key == pg.K_LSHIFT:
                     shift_pressed = True
-                elif event.key == attack_2:
+                elif event.key == pg.K_LCTRL:
                     ctrl_pressed = True
                 elif event.key == pg.K_1:
                     player.inventory.current_item = 0
@@ -1349,12 +1067,6 @@ def run_level(lvl: str) -> None:
                     player.inventory.current_item = 2
                 elif event.key == pg.K_4:
                     player.inventory.current_item = 3
-                elif event.key == pause:
-                    pause_button.clicks += 1
-                    pause_button.y_pos = 590
-                elif event.key == pg.K_e and can_finish:
-                    finish = datetime.now()
-                    finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     lmb_pressed = True
@@ -1382,18 +1094,17 @@ def run_level(lvl: str) -> None:
                 elif event.button == 3:
                     pointed = True
                     move_to_cell = event.pos[0] // SPRITE_SIZE, event.pos[1] // SPRITE_SIZE
-                    if len([j for j in animated_sprites if j.filename == 'arrow']):
+                    if len([i for i in animated_sprites if i.filename == 'arrow']):
                         kill_arrow()
                     if castle.is_free((move_to_cell[0], move_to_cell[1])):
                         Pointer(event.pos[0] - 10, event.pos[1] - 15, 'arrow')
             elif event.type == pg.MOUSEBUTTONUP:
                 if event.button == 1:
                     lmb_pressed = False
-                    throw = False
             elif event.type == pg.KEYUP:
-                if event.key == attack_1:
+                if event.key == pg.K_LSHIFT:
                     shift_pressed = False
-                elif event.key == attack_2:
+                elif event.key == pg.K_LCTRL:
                     ctrl_pressed = False
             elif event.type == pg.MOUSEMOTION:
                 collide = lower_rect.collidepoint(event.pos)
@@ -1408,6 +1119,9 @@ def run_level(lvl: str) -> None:
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
+        if not pause_button.unpause:
+            # pause()
+            pause_window(pause_button)
         castle.render()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
@@ -1420,7 +1134,7 @@ def run_level(lvl: str) -> None:
             chest.update()
             if chest.opened and not chest.dropped:
                 drop = chest.get_drop()
-                spawn_object(drop.dir + drop.filename)
+                player.inventory.add(drop, drop.dir)
         for sprite in can_be_picked_up:
             sprite.update()
         player.inventory.draw()
@@ -1430,28 +1144,44 @@ def run_level(lvl: str) -> None:
         if throw:
             player.inventory.throw()
         elif player.inventory.throwing is not None:
-            spawn_object(player.inventory.thrown_elem)
+            player.inventory.spawn_thrown_object()
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
-        if can_finish:
-            show_exit_text()
+        if end:
+            finish_window()
         pg.display.flip()
         clock.tick(FPS)
-        if continued and not pause_button.unpause:
-            pause_window(pause_button)
-            continued = False
-        if not pause_button.unpause:
-            continued = True
-        can_finish = (player.get_center_cell() in [(43, 37), (44, 37), (45, 37), (46, 37),
-                                                   (43, 38), (44, 38), (45, 48), (46, 38)] and player.has_key())
+
+
+
+def pause(pause_button) -> None:
+    """
+    Пауза.
+    :returns: None
+    """
+    while True:
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.KEYDOWN:
+                if evt.key == pg.K_ESCAPE:
+                    return
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    pause_button.clicks += 1
+        if pause_button.unpause:
+            return
+        pause_button.draw()
+        pause_button.update()
 
 
 def kill_arrow() -> None:
     """
     Убирает объект указателя из группы animated_sprites,
     тем самым он перестаёт отрисовываться.
-    :returns: None
+    :return: None
     """
     for obj in animated_sprites:
         if obj.filename == 'arrow':
@@ -1461,15 +1191,10 @@ def kill_arrow() -> None:
 def terminate() -> None:
     """
     Выход из игры.
-    :returns: None
+    :return: None
     """
     pg.quit()
     sys.exit()
-
-
-throw: bool
-player: Player
-castle: Castle
 
 
 # ЗАПУСК
@@ -1481,4 +1206,5 @@ if __name__ == '__main__':
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
     clock = pg.time.Clock()
+    add_items()
     start_window()

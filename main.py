@@ -387,81 +387,85 @@ class Player(MovingObject):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
+        self.dead = False
         self.health = 5
         self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
-        current_pos_rd = self.get_right_down_cell()
-        current_pos_lu = self.get_left_up_cell()
-        current_pos_ru = self.get_right_up_cell()
-        current_pos_ld = self.get_left_down_cell()
-        if keys[downward]:
-            if castle.is_free(current_pos_rd) and castle.is_free(current_pos_ld) and \
-                    castle.is_free((current_pos_rd[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and \
-                    castle.is_free((current_pos_ld[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
-                self.move_by_delta(dx=0, dy=PLAYER_SPEED)
-                self.current_direction = (0, 1)
-        if keys[upward]:
-            if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and \
-                    castle.is_free((current_pos_ru[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and \
-                    castle.is_free((current_pos_lu[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
-                self.move_by_delta(dx=0, dy=-PLAYER_SPEED)
-                self.current_direction = (0, -1)
-        if keys[left]:
-            if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and \
-                    castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and \
-                    castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
-                self.move_by_delta(dx=-PLAYER_SPEED, dy=0)
-                self.flip = True
-                self.current_direction = (-1, 0)
-        if keys[right]:
-            if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
-                    castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
-                    castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):
-                self.move_by_delta(dx=PLAYER_SPEED, dy=0)
-                self.flip = False
-                self.current_direction = (1, 0)
+        if not self.dead:
+            current_pos_rd = self.get_right_down_cell()
+            current_pos_lu = self.get_left_up_cell()
+            current_pos_ru = self.get_right_up_cell()
+            current_pos_ld = self.get_left_down_cell()
+            if keys[downward]:
+                if castle.is_free(current_pos_rd) and castle.is_free(current_pos_ld) and \
+                        castle.is_free((current_pos_rd[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and \
+                        castle.is_free((current_pos_ld[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
+                    self.move_by_delta(dx=0, dy=PLAYER_SPEED)
+                    self.current_direction = (0, 1)
+            if keys[upward]:
+                if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and \
+                        castle.is_free((current_pos_ru[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and \
+                        castle.is_free((current_pos_lu[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
+                    self.move_by_delta(dx=0, dy=-PLAYER_SPEED)
+                    self.current_direction = (0, -1)
+            if keys[left]:
+                if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and \
+                        castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and \
+                        castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
+                    self.move_by_delta(dx=-PLAYER_SPEED, dy=0)
+                    self.flip = True
+                    self.current_direction = (-1, 0)
+            if keys[right]:
+                if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
+                        castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
+                        castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):
+                    self.move_by_delta(dx=PLAYER_SPEED, dy=0)
+                    self.flip = False
+                    self.current_direction = (1, 0)
 
     def slash(self, foldername: str, frames=6) -> None:
-        slash_delay = self.animation_delay
-        if 'Group' in foldername:
-            slash_delay = 110
-        elif 'Thin' in foldername:
-            slash_delay = 50
-        elif 'Wide' in foldername:
-            slash_delay = 80
-        if self.do_slash:
-            images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
-            tick = pg.time.get_ticks()
-            image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
-            if tick - self.slash_tick >= slash_delay:
-                self.current_slash = (self.current_slash + 1) % frames
+        if not self.dead:
+            slash_delay = self.animation_delay
+            if 'Group' in foldername:
+                slash_delay = 110
+            elif 'Thin' in foldername:
+                slash_delay = 50
+            elif 'Wide' in foldername:
+                slash_delay = 80
+            if self.do_slash:
+                images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
+                tick = pg.time.get_ticks()
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
-                self.slash_tick = pg.time.get_ticks()
-            if not self.flip:
-                screen.blit(image, (self.pos[0], self.pos[1] - 10))
-            else:
-                screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
-                            (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
-        if self.current_slash == frames - 1:
-            self.current_slash = -1
-            self.do_slash = False
-            for e in enemies:
-                if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
-                        'Thin' in foldername):
-                    if not e.dead:
-                        e.health -= 1
-                elif 'Group' in foldername:
-                    pass
-                elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                      'Wide' in foldername):
-                    e.health -= 2
+                if tick - self.slash_tick >= slash_delay:
+                    self.current_slash = (self.current_slash + 1) % frames
+                    image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+                    self.slash_tick = pg.time.get_ticks()
+                if not self.flip:
+                    screen.blit(image, (self.pos[0], self.pos[1] - 10))
+                else:
+                    screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
+                                (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
+            if self.current_slash == frames - 1:
+                self.current_slash = -1
+                self.do_slash = False
+                for e in enemies:
+                    if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
+                            'Thin' in foldername):
+                        if not e.dead:
+                            e.health -= 1
+                    elif 'Group' in foldername:
+                        pass
+                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                          'Wide' in foldername):
+                        e.health -= 2
 
     def use_current_item(self) -> None:
-        items = self.inventory.items_images[self.inventory.current_item]
-        if items and 'flasks_4' in items[0]:
-            self.health += 1 if self.health < 5 else 0
-            del self.inventory.items_images[self.inventory.current_item][0]
+        if not self.dead:
+            items = self.inventory.items_images[self.inventory.current_item]
+            if items and 'flasks_4' in items[0]:
+                self.health += 1 if self.health < 5 else 0
+                del self.inventory.items_images[self.inventory.current_item][0]
 
     def has_free_space(self, file: str) -> bool:
         file += '_1.png'
@@ -470,6 +474,12 @@ class Player(MovingObject):
 
     def has_key(self) -> bool:
         return any([any([KEYS_DIR in j for j in k]) for k in self.inventory.items_images])
+
+    def update(self):
+        if self.health <= 0:
+            self.dead = True
+            screen.blit(pg.image.load(INTERFACE_DIR + '/UI_Flat_Cross_Large.png'),
+                        (self.pos[0] - SPRITE_SIZE // 2, self.pos[1] - SPRITE_SIZE // 2))
 
 
 class Pointer(AnimatedObject):
@@ -706,7 +716,7 @@ class Monster(MovingObject, Castle):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
-        self.health = 5
+        self.health = 3
         self.current_direction = 1, 0
         self.view_radius = 100
         self.afk_move = True
@@ -1112,50 +1122,51 @@ class InputBox:
 
 
 def move_by_pointer(obj, to_where: tuple[int, int]) -> None:
-    if obj.current_direction[0] > 0:
-        if (castle.get_distance_ox(obj.get_left_up_cell())[1] <
-                castle.get_distance_ox(obj.get_left_down_cell())[1]):
-            obj.collide_vertex = obj.get_left_up_cell()
-        elif (castle.get_distance_ox(obj.get_left_up_cell())[1] >
-              castle.get_distance_ox(obj.get_left_down_cell())[1]):
-            obj.collide_vertex = obj.get_left_down_cell()
-        else:
-            obj.collide_vertex = obj.get_center_cell()
+    if not obj.dead:
+        if obj.current_direction[0] > 0:
+            if (castle.get_distance_ox(obj.get_left_up_cell())[1] <
+                    castle.get_distance_ox(obj.get_left_down_cell())[1]):
+                obj.collide_vertex = obj.get_left_up_cell()
+            elif (castle.get_distance_ox(obj.get_left_up_cell())[1] >
+                  castle.get_distance_ox(obj.get_left_down_cell())[1]):
+                obj.collide_vertex = obj.get_left_down_cell()
+            else:
+                obj.collide_vertex = obj.get_center_cell()
 
-    if obj.current_direction[0] < 0:
-        if (castle.get_distance_ox(obj.get_right_up_cell())[0] <
-                castle.get_distance_ox(obj.get_right_down_cell())[0]):
-            obj.collide_vertex = obj.get_right_up_cell()
-        elif (castle.get_distance_ox(obj.get_right_up_cell())[0] >
-              castle.get_distance_ox(obj.get_right_down_cell())[0]):
-            obj.collide_vertex = obj.get_right_down_cell()
-        else:
-            obj.collide_vertex = obj.get_center_cell()
+        if obj.current_direction[0] < 0:
+            if (castle.get_distance_ox(obj.get_right_up_cell())[0] <
+                    castle.get_distance_ox(obj.get_right_down_cell())[0]):
+                obj.collide_vertex = obj.get_right_up_cell()
+            elif (castle.get_distance_ox(obj.get_right_up_cell())[0] >
+                  castle.get_distance_ox(obj.get_right_down_cell())[0]):
+                obj.collide_vertex = obj.get_right_down_cell()
+            else:
+                obj.collide_vertex = obj.get_center_cell()
 
-    if obj.current_direction[1] > 0:
-        if (castle.get_distance_oy(obj.get_left_up_cell())[1] <
-                castle.get_distance_oy(obj.get_right_up_cell())[1]):
-            obj.collide_vertex = obj.get_left_up_cell()
-        elif (castle.get_distance_oy(obj.get_left_up_cell())[1] >
-              castle.get_distance_oy(obj.get_right_up_cell())[1]):
-            obj.collide_vertex = obj.get_right_up_cell()
-        else:
-            obj.collide_vertex = obj.get_center_cell()
+        if obj.current_direction[1] > 0:
+            if (castle.get_distance_oy(obj.get_left_up_cell())[1] <
+                    castle.get_distance_oy(obj.get_right_up_cell())[1]):
+                obj.collide_vertex = obj.get_left_up_cell()
+            elif (castle.get_distance_oy(obj.get_left_up_cell())[1] >
+                  castle.get_distance_oy(obj.get_right_up_cell())[1]):
+                obj.collide_vertex = obj.get_right_up_cell()
+            else:
+                obj.collide_vertex = obj.get_center_cell()
 
-    if obj.current_direction[1] < 0:
-        if (castle.get_distance_oy(obj.get_left_down_cell())[0] <
-                castle.get_distance_oy(obj.get_right_down_cell())[0]):
-            obj.collide_vertex = obj.get_left_down_cell()
-        elif (castle.get_distance_oy(obj.get_left_down_cell())[0] >
-              castle.get_distance_oy(obj.get_right_down_cell())[0]):
-            obj.collide_vertex = obj.get_right_down_cell()
-        else:
-            obj.collide_vertex = obj.get_center_cell()
-    next_pos = castle.find_path_step(obj.collide_vertex, to_where)
-    dir_x, dir_y = next_pos[0] - obj.collide_vertex[0], next_pos[1] - obj.collide_vertex[1]
-    obj.current_direction = (dir_x, dir_y)
-    obj.flip = dir_x < 0
-    obj.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
+        if obj.current_direction[1] < 0:
+            if (castle.get_distance_oy(obj.get_left_down_cell())[0] <
+                    castle.get_distance_oy(obj.get_right_down_cell())[0]):
+                obj.collide_vertex = obj.get_left_down_cell()
+            elif (castle.get_distance_oy(obj.get_left_down_cell())[0] >
+                  castle.get_distance_oy(obj.get_right_down_cell())[0]):
+                obj.collide_vertex = obj.get_right_down_cell()
+            else:
+                obj.collide_vertex = obj.get_center_cell()
+        next_pos = castle.find_path_step(obj.collide_vertex, to_where)
+        dir_x, dir_y = next_pos[0] - obj.collide_vertex[0], next_pos[1] - obj.collide_vertex[1]
+        obj.current_direction = (dir_x, dir_y)
+        obj.flip = dir_x < 0
+        obj.move_by_delta(dx=dir_x * PLAYER_SPEED, dy=dir_y * PLAYER_SPEED)
 
 
 def start_window() -> None:
@@ -1579,6 +1590,7 @@ def run_level(lvl: str) -> None:
             player.inventory.throwing = None
         if can_finish:
             show_exit_text()
+        player.update()
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:

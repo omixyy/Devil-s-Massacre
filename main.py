@@ -726,6 +726,115 @@ class Castle:
         return dist_left, dist_right
 
 
+class Monster(MovingObject, Castle):
+    def __init__(self, x: int, y: int, filename: str) -> None:
+        super().__init__(x, y, filename)
+        self.current_slash = -1
+        self.slash_tick = pg.time.get_ticks()
+        self.do_slash = False
+        self.health = 1
+
+    def find_path_step(self, start: tuple[int, int], target: tuple[int, int]) -> tuple[int, int]:
+        inf = 1000
+        x, y = start
+        distance = [[inf] * self.width for _ in range(self.height)]
+        distance[y][x] = 0
+        prev = [[(None, None)] * self.width for _ in range(self.height)]
+        queue = [(x, y)]
+        while queue:
+            x, y = queue.pop(0)
+            for dx, dy in (1, 0), (0, 1), (-1, 0), (0, -1):
+                next_x, next_y = x + dx, y + dy
+                if 0 <= next_x <= self.width and 0 <= next_y <= self.height and \
+                        self.is_free((next_x, next_y)) and distance[next_y][next_x] == inf:
+                    distance[next_y][next_x] = distance[y][x] + 1
+                    prev[next_y][next_x] = (x, y)
+                    queue.append((next_x, next_y))
+        x, y = target
+        if distance[y][x] == inf or start == target:
+            return start
+        while prev[y][x] != start:
+            x, y = prev[y][x]
+        return x, y
+
+    def find_zone(self, radius: int):
+        self.detect_zone = pg.sprite.Sprite()
+        self.detect_zone.image = pg.Surface((80, 89), pg.SRCALPHA)
+        pg.draw.circle(self.detect_zone.image, (0, 0, 0), (40, 40), 40)
+        self.detect_zone.rect = pg.Rect(self.collide_vertex, 0, 0).inflate(radius, radius)
+
+    def move_to_player(self, where: tuple[int, int]):
+        if self.current_direction[0] > 0:
+            if (castle.get_distance_ox(self.get_left_up_cell())[1] <
+                    castle.get_distance_ox(self.get_left_down_cell())[1]):
+                self.collide_vertex = self.get_left_up_cell()
+            elif (castle.get_distance_ox(self.get_left_up_cell())[1] >
+                  castle.get_distance_ox(self.get_left_down_cell())[1]):
+                self.collide_vertex = self.get_left_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+
+        if self.current_direction[0] < 0:
+            if (castle.get_distance_ox(self.get_right_up_cell())[0] <
+                    castle.get_distance_ox(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_up_cell()
+            elif (castle.get_distance_ox(self.get_right_up_cell())[0] >
+                  castle.get_distance_ox(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+
+        if self.current_direction[1] > 0:
+            if (castle.get_distance_oy(self.get_left_up_cell())[1] <
+                    castle.get_distance_oy(self.get_right_up_cell())[1]):
+                self.collide_vertex = self.get_left_up_cell()
+            elif (castle.get_distance_oy(self.get_left_up_cell())[1] >
+                  castle.get_distance_oy(self.get_right_up_cell())[1]):
+                self.collide_vertex = self.get_right_up_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+
+        if self.current_direction[1] < 0:
+            if (castle.get_distance_oy(self.get_left_down_cell())[0] <
+                    castle.get_distance_oy(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_left_down_cell()
+            elif (castle.get_distance_oy(self.get_left_down_cell())[0] >
+                  castle.get_distance_oy(self.get_right_down_cell())[0]):
+                self.collide_vertex = self.get_right_down_cell()
+            else:
+                self.collide_vertex = self.get_center_cell()
+        next_pos = castle.find_path_step(self.collide_vertex, where)
+        dir_x, dir_y = next_pos[0] - self.collide_vertex[0], next_pos[1] - self.collide_vertex[1]
+        self.current_direction = (dir_x, dir_y)
+        self.flip = dir_x < 0
+        self.move_by_delta(dx=dir_x * PLAYER_SPEED // 2, dy=dir_y * PLAYER_SPEED // 2)
+
+    def slash(self, foldername: str, frames=6) -> None:
+        slash_delay = self.animation_delay
+        if 'Group' in foldername:
+            slash_delay = 110
+        elif 'Thin' in foldername:
+            slash_delay = 50
+        elif 'Wide' in foldername:
+            slash_delay = 80
+        if self.do_slash:
+            images = [SLASH_DIR + '/' + foldername + f'/File{i}.png' for i in range(1, frames + 1)]
+            tick = pg.time.get_ticks()
+            image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+            if tick - self.slash_tick >= slash_delay:
+                self.current_slash = (self.current_slash + 1) % frames
+                image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
+                self.slash_tick = pg.time.get_ticks()
+            if not self.flip:
+                screen.blit(image, (self.pos[0], self.pos[1] - 10))
+            else:
+                screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
+                            (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
+        if self.current_slash == frames - 1:
+            self.current_slash = -1
+            self.do_slash = False
+
+
 class Button:
     """
     Класс, реализовывающий кнопку

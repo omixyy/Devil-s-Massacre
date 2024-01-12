@@ -969,6 +969,9 @@ class ScreenDesigner:
         self.back_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
                                   pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 25,
                                   select=pg.transform.scale(self.pressed, (200, 100)))
+        self.restart_button = Button(pg.transform.scale(self.not_pressed, (260, 100)),
+                                   pg.transform.scale(self.pressed, (260, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 60,
+                                   select=pg.transform.scale(self.pressed, (260, 100)))
         self.list_levels_buttons = []
 
     def render_start_window(self) -> None:
@@ -1003,6 +1006,17 @@ class ScreenDesigner:
             self.draw_choose_level_button(j, WIDTH // 2 - 240 + (j // 3) * 240,
                                           HEIGHT // 4 + 70 * (j + 1) - (j // 3) * 211)
         self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * 3 + 80)
+
+    def render_death_window(self) -> None:
+        self.draw_title("YOU DIED!", WIDTH // 2, HEIGHT // 4)
+        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 165)
+        self.draw_restart_button(WIDTH // 2 - 100, HEIGHT // 2 - 60)
+        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 225)
+
+    def draw_restart_button(self, x: int, y: int) -> None:
+        self.restart_button.draw_changing_pic()
+        screen.blit(self.font.render('RESTART', 1, (0, 0, 0)),
+                    (self.restart_button.x + 37, self.restart_button.y_pos + 21))
 
     def draw_choose_level_button(self, j: int, x: int, y: int) -> None:
         text = self.font.render(f'Level {j + 1} ', 1, (0, 0, 0))
@@ -1353,6 +1367,35 @@ def pause_window(pause_button: Button) -> None:
         pg.display.flip()
         clock.tick(FPS)
 
+def death_window(lvl: str)-> None:
+    """
+    Работа экрана смерти
+    :returns: None
+    """
+    death_menu = ScreenDesigner()
+    surf_alpha = pg.Surface((WIDTH, HEIGHT))
+    surf_alpha.set_alpha(1)
+    count = -1
+    while True:
+        count += 1
+        for evt in pg.event.get():
+            if evt.type == pg.QUIT:
+                terminate()
+                break
+            elif evt.type == pg.MOUSEBUTTONDOWN:
+                if death_menu.start_button.rect.collidepoint(evt.pos):
+                    run_level(lvl)
+                if death_menu.menu_button.rect.collidepoint(evt.pos):
+                    start_window()
+                if death_menu.exit_button.rect.collidepoint(evt.pos):
+                    terminate()
+                    break
+        death_menu.render_death_window()
+        if count <= 50 and count % 2 == 0:
+            screen.blit(surf_alpha, (0, 0))
+
+        pg.display.flip()
+        clock.tick(FPS)
 
 def add_items() -> None:
     """
@@ -1591,6 +1634,8 @@ def run_level(lvl: str) -> None:
         if can_finish:
             show_exit_text()
         player.update()
+        if player.health == 5:
+            death_window(lvl)
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:

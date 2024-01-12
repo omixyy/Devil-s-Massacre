@@ -150,7 +150,7 @@ class MovingObject(AnimatedObject):
     """
 
     def __init__(self, x: int, y: int, filename: str) -> None:
-        directory = PLAYERS_DIR if 'priest' in filename else SKULL_DIR
+        directory = PLAYERS_DIR if 'priest' in filename else SKULL_DIR_V2
         groups = [animated_sprites] if 'priest' in filename else [animated_sprites, enemies]
         super().__init__(groups, directory, x, y, filename)
         self.current_direction = (0, 0)
@@ -400,23 +400,27 @@ class Player(MovingObject):
                     castle.is_free((current_pos_rd[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)) and \
                     castle.is_free((current_pos_ld[0], (self.pos[1] + PLAYER_SPEED) // SPRITE_SIZE + 1)):
                 self.move_by_delta(dx=0, dy=PLAYER_SPEED)
+                self.current_direction = (0, 1)
         if keys[upward]:
             if castle.is_free(current_pos_ru) and castle.is_free(current_pos_lu) and \
                     castle.is_free((current_pos_ru[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)) and \
                     castle.is_free((current_pos_lu[0], (self.pos[1] - PLAYER_SPEED) // SPRITE_SIZE)):
                 self.move_by_delta(dx=0, dy=-PLAYER_SPEED)
+                self.current_direction = (0, -1)
         if keys[left]:
             if castle.is_free(current_pos_lu) and castle.is_free(current_pos_ld) and \
                     castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_lu[1])) and \
                     castle.is_free(((self.pos[0] - PLAYER_SPEED) // SPRITE_SIZE, current_pos_ld[1])):
                 self.move_by_delta(dx=-PLAYER_SPEED, dy=0)
                 self.flip = True
+                self.current_direction = (-1, 0)
         if keys[right]:
             if castle.is_free(current_pos_ru) and castle.is_free(current_pos_rd) and \
                     castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_ru[1])) and \
                     castle.is_free(((self.pos[0] + PLAYER_SPEED) // SPRITE_SIZE + 1, current_pos_rd[1])):
                 self.move_by_delta(dx=PLAYER_SPEED, dy=0)
                 self.flip = False
+                self.current_direction = (1, 0)
 
     def slash(self, foldername: str, frames=6) -> None:
         slash_delay = self.animation_delay
@@ -445,7 +449,8 @@ class Player(MovingObject):
             for e in enemies:
                 if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
                         'Thin' in foldername):
-                    e.health -= 1
+                    if not e.dead:
+                        e.health -= 1
                 elif 'Group' in foldername:
                     pass
                 elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
@@ -708,9 +713,13 @@ class Monster(MovingObject, Castle):
         self.go_to_player = False
         self.start_x, _ = self.pos
         self.x, self.y = self.pos
+        self.hit_delay = 1000
+        self.last = 0
+        self.collided = False
+        self.dead = False
 
     def move_right_left(self):
-        if self.afk_move:
+        if self.afk_move and not self.dead:
             if abs(self.current_direction[1]) == 1:
                 self.current_direction = (1, 0)
             if self.current_direction[0] == 1 and self.x >= self.start_x - 30:
@@ -739,20 +748,36 @@ class Monster(MovingObject, Castle):
                              abs(player.pos[1] - self.pos[1]) <= self.view_radius)
         self.afk_move = not self.go_to_player
 
+        if self.health <= 0:
+            self.die()
+
     def move_to_player(self):
-        collided = pg.sprite.spritecollide(player, enemies, dokill=False)
-        if (self.go_to_player and (abs(self.get_center_cell()[0] - player.get_center_cell()[0]) >= 2 or
-                                   abs(self.get_center_cell()[1] - player.get_center_cell()[1]) >= 2) and not collided):
-            move_by_pointer(self, player.get_center_cell())
-            self.start_x = self.pos[0] - 30
-        elif (not self.afk_move and
-              abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE // 2):
-            self.do_slash = True
-            self.hit('Red Slash Thin')
+        if not self.dead:
+            player_collide = pg.sprite.spritecollide(player, enemies, dokill=False)
+            if (self.go_to_player and
+                    (abs(self.get_center_cell()[0] - player.get_center_cell()[0]) >= 2 or
+                     abs(self.get_center_cell()[1] - player.get_center_cell()[1]) >= 2) and
+                    not player_collide):
+                move_by_pointer(self, player.get_center_cell())
+                self.start_x = self.pos[0] - 30
+            elif (not self.afk_move and
+                  abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE // 2):
+                self.do_slash = True
+                self.hit('Red Slash Thin')
+
+            if player_collide:
+                self.current_direction = player.current_direction
+                if castle.is_free((
+                        (self.get_center_coordinates()[0] + SPRITE_SIZE // 2 * self.current_direction[0] +
+                         PLAYER_SPEED * self.current_direction[0]) // SPRITE_SIZE,
+                        (self.get_center_coordinates()[1] + SPRITE_SIZE // 2 * self.current_direction[1] +
+                         PLAYER_SPEED * self.current_direction[1]) // SPRITE_SIZE)):
+                    self.move_by_delta(
+                        PLAYER_SPEED * self.current_direction[0], PLAYER_SPEED * self.current_direction[1])
 
     def hit(self, foldername: str, frames=6) -> None:
-        slash_delay = 100
-        if self.do_slash:
+        slash_delay = 80
+        if self.do_slash and pg.time.get_ticks() - self.last >= self.hit_delay:
             images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
             tick = pg.time.get_ticks()
             image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
@@ -760,6 +785,8 @@ class Monster(MovingObject, Castle):
                 self.current_slash = (self.current_slash + 1) % frames
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                 self.slash_tick = pg.time.get_ticks()
+                if self.current_slash == frames - 4:
+                    player.health -= 1
             if not self.flip:
                 screen.blit(image, (self.pos[0], self.pos[1] - 10))
             else:
@@ -768,7 +795,11 @@ class Monster(MovingObject, Castle):
         if self.current_slash == frames - 1:
             self.current_slash = -1
             self.do_slash = False
-            player.health -= 1
+            self.last = pg.time.get_ticks()
+
+    def die(self):
+        self.dead = True
+        self.images = [SKULL_DIR_V2 + f'/skull_v2_dead_{k}.png' for k in range(1, 5)]
 
 
 class Button:

@@ -874,6 +874,7 @@ class Button:
         self.pressed = False
         self.unpause = True
         self.clicks = 0
+        self.on = False
 
     def draw(self) -> None:
         screen.blit(self.current_image, (self.x, self.y_pos))
@@ -882,12 +883,16 @@ class Button:
         self.rect = self.current_image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y_pos
+        on_bef = self.on
         if self.rect.collidepoint(pg.mouse.get_pos()) and self.select is not None:
+            self.on = True
             self.current_image = self.select.copy()
         else:
+            self.on = False
             self.current_image = self.image.copy()
+        if on_bef != self.on and self.current_image != self.select:
+            all_music.button_press_music.play()
         screen.blit(self.current_image, (self.x, self.y_pos))
-        all_music.button_press_music.play()
 
     def update(self) -> None:
         if self.mouse_collide and self.y_pos >= 590:
@@ -1168,9 +1173,13 @@ def make_music_file(file):
     return pg.mixer.Sound(f'music/{file}')
 
 
+def make_buffer(array):
+    return pg.mixer.Sound(buffer=array)
+
+
 class Music:
     def __init__(self):
-        self.throw_item_music = make_music_file('shumnyiy-sbros-ryukzaka-s-plecha.ogg')
+        """self.throw_item_music = make_music_file('shumnyiy-sbros-ryukzaka-s-plecha.ogg')
         self.use_current_item_music = make_music_file('zvuk-kogda-zakinuli-ryukzak-na-plecho.ogg')
         self.door_opened_music = make_music_file('otkryivanie-i-zakryivanie-dverey-sborka-31873.ogg')
         self.chest_opened_music = make_music_file('inecraft_chest_open.ogg')
@@ -1182,6 +1191,21 @@ class Music:
         self.finish_window_music = make_music_file('e5d80a096ce432d.mp3')
         self.death_window_music = make_music_file('1de2d2611347013.mp3')
         self.level_window_music = make_music_file('e74ba825d98595d.mp3')
+        self.start_window_music = make_music_file('449359103103a80.mp3')
+        """
+        self.throw_item_music = make_music_file('silent.wav')
+        self.use_current_item_music = make_music_file('silent.wav')
+        self.door_opened_music = make_music_file('silent.wav')
+        self.chest_opened_music = make_music_file('silent.wav')
+        self.death_monster_music = make_music_file('silent.wav')
+        self.death_player_music = make_music_file('silent.wav')
+        self.slash_monster_music = make_music_file('silent.wav')
+        self.slash_player_music = make_music_file('silent.wav')
+        self.button_press_music = make_music_file('kompyuternaya-klaviatura-odinochnoe-najatie-klavish-38325.mp3')
+        self.button_press_music = make_buffer(self.button_press_music.get_raw()[70000:80000])
+        self.finish_window_music = make_music_file('silent.wav')
+        self.death_window_music = make_music_file('silent.wav')
+        self.level_window_music = make_music_file('silent.wav')
         self.start_window_music = make_music_file('449359103103a80.mp3')
 
 
@@ -1238,19 +1262,18 @@ def start_window() -> None:
     Работа стартового экрана
     :returns: None
     """
-
     start_menu = ScreenDesigner()  # exit, title, start, level
+    all_music.start_window_music.play(-1)
     if len(animated_sprites) != 0:
         fade_screen('menu')
-    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
+                all_music.start_window_music.stop()
                 if start_menu.start_button.rect.collidepoint(evt.pos):
-                    all_music.start_window_music.stop()
                     run_level(level)
                 if start_menu.level_button.rect.collidepoint(evt.pos):
                     level_window()
@@ -1353,6 +1376,7 @@ def level_window() -> None:
                     n_level = [j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons].index(True)
                     level = list_of_levels[n_level]
                     if level in available_levels:
+                        all_music.start_window_music.stop()
                         run_level(level)
         window.render_level_window()
         pg.display.flip()
@@ -1379,6 +1403,7 @@ def settings_window() -> None:
     for k in range(7):
         boxes_list[k].text = text_names[k]
     window = ScreenDesigner()
+    all_music.start_window_music.stop()
     while True:
         texts = [k.text for k in boxes_list]
         if all(texts) and not len(set(texts)) < len(texts):
@@ -1421,15 +1446,18 @@ def pause_window(pause_button: Button) -> None:
 
     pause_menu = ScreenDesigner()
     screen_cpy = screen.copy()
+    all_music.start_window_music.play()
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
             elif evt.type == pg.KEYDOWN:
+                all_music.start_window_music.stop()
                 if evt.key == pause:
                     pause_button.clicks += 1
             elif evt.type == pg.MOUSEBUTTONDOWN:
+                all_music.start_window_music.stop()
                 if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
                     pause_button.clicks += 1
                 if pause_menu.menu_button.rect.collidepoint(evt.pos):

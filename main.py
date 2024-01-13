@@ -973,6 +973,7 @@ class ScreenDesigner:
                                      pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 39,
                                      select=pg.transform.scale(self.pressed, (200, 100)))
         self.death_screen_created = False
+        self.finish_screen_created = False
         self.death_text = 'YOU DIED'
         self.current_ind = [0, 1]
         self.list_levels_buttons = []
@@ -994,13 +995,18 @@ class ScreenDesigner:
         self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 2 - 150)
         self.draw_settings_button(WIDTH // 2 - 100, HEIGHT // 2 - 50)
 
-    def render_finish_window(self, play_time):
-        self.draw_title("Level complete!", WIDTH // 2, HEIGHT // 4)  # title
-        self.draw_title(f"Time: {play_time} seconds", WIDTH // 2, HEIGHT // 4 + 50)  # time
-        self.draw_items(WIDTH // 2 - 100, HEIGHT // 4 + 75)
-        self.draw_next_button()
-        self.draw_menu_button(WIDTH // 2 + 50, HEIGHT // 4 + 225)
-        self.draw_exit_button(WIDTH // 2 - 250, HEIGHT // 4 + 225)
+    def render_finish_window(self):
+        if not self.finish_screen_created:
+            self.draw_items(WIDTH // 2 - 100, HEIGHT // 4 + 75 - 500)
+            self.draw_next_button(WIDTH // 2 - 175, HEIGHT // 4 + 150 - 500)
+            self.draw_menu_button(WIDTH // 2 + 50, HEIGHT // 4 + 225 - 500)
+            self.draw_exit_button(WIDTH // 2 - 250, HEIGHT // 4 + 225 - 500)
+            self.finish_screen_created = True
+        else:
+            self.draw_items(WIDTH // 2 - 100, self.next_button.y_pos - 75)
+            self.draw_next_button(self.next_button.x, self.next_button.y_pos)
+            self.draw_menu_button(self.menu_button.x, self.menu_button.y_pos)
+            self.draw_exit_button(self.exit_button.x, self.exit_button.y_pos)
 
     def render_level_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
@@ -1052,7 +1058,9 @@ class ScreenDesigner:
             screen.blit(item_image, (x + item_image.get_width() * j + (
                 45 if unique == 1 else -45 if unique == 3 else 0), y))
 
-    def draw_next_button(self) -> None:
+    def draw_next_button(self, x: int, y: int) -> None:
+        self.next_button.x = x
+        self.next_button.y_pos = y
         self.next_button.draw_changing_pic()
         screen.blit(self.font.render('NEXT LEVEL', 1, (0, 0, 0)),
                     (self.next_button.x + 64, self.next_button.y_pos + 21))
@@ -1198,7 +1206,10 @@ def start_window() -> None:
     Работа стартового экрана
     :returns: None
     """
+
     start_menu = ScreenDesigner()  # exit, title, start, level
+    if len(animated_sprites) != 0:
+        fade_screen('menu')
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1227,10 +1238,14 @@ def finish_window(play_time: float) -> None:
 
     global level, available_levels, n_level
     window = ScreenDesigner()
+    text_copy_created = False
     screen_cpy = screen.copy()
+    text_copy = screen.copy()
+    copy_created = False
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
-    surf_alpha.set_alpha(128)
+    alpha = 1
     available_levels.append(level)
+    tick = pg.time.get_ticks()
     try:
         available_levels.append(list_of_levels[list_of_levels.index(level) + 1])
         level = available_levels[-1]
@@ -1248,6 +1263,8 @@ def finish_window(play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
+
+                    # TODO
                     if level in ['level5']:
                         n_level = 0
                         level = list_of_levels[0]
@@ -1255,9 +1272,26 @@ def finish_window(play_time: float) -> None:
                     else:
                         n_level += 1
                         run_level(level)
-        window.render_finish_window(play_time)
+        window.render_finish_window()
+        if not copy_created:
+            screen_cpy = screen.copy()
+            copy_created = True
+        if window.next_button.y_pos <= HEIGHT // 4 + 150:
+            animate_buttons([window.next_button, window.exit_button, window.menu_button])
+        elif pg.time.get_ticks() - tick >= 50 and copy_created:
+            window.current_ind[1] += 1
+            tick = pg.time.get_ticks()
+            window.draw_title(f'Level complete! Play time: {play_time}'[window.current_ind[0]:window.current_ind[1]],
+                              WIDTH // 2, HEIGHT // 4)
+            text_copy = screen.copy()
+            text_copy_created = True
+        if text_copy_created:
+            screen.blit(text_copy, (0, 0))
         pg.display.flip()
         clock.tick(FPS)
+        if alpha < 128:
+            alpha += 3
+            surf_alpha.set_alpha(alpha)
         screen.blit(screen_cpy, (0, 0))
         screen.blit(surf_alpha, (0, 0))
 
@@ -1494,6 +1528,12 @@ def spawn_object(elem_dir: str, from_chest: bool = False) -> None:
 
 
 def animate_buttons(buttons: list[Button]):
+    """
+    Уменьшает координату по оси y для кнопок в списке buttons
+    :param buttons: Список кнопок, для которых нужно уменьшать координату
+    :return:
+    """
+
     for button in buttons:
         button.y_pos += 7
 
@@ -1526,6 +1566,52 @@ def show_exit_text() -> None:
     screen.blit(rendered, (player.pos[0] - (rendered.get_size()[0] - SPRITE_SIZE) // 2, player.pos[1] - 20))
 
 
+def fade_screen(end_window: str) -> None:
+    fade_surface = pg.Surface(screen.get_size())
+    fade_surface.fill(pg.Color('black'))
+    alpha = 1
+    fade_back = False
+    create = True
+    while True:
+        for e in pg.event.get():
+            if e.type == pg.QUIT:
+                terminate()
+                break
+        if not fade_back:
+            alpha += 1
+            fade_surface.set_alpha(alpha)
+            screen.blit(fade_surface, (0, 0))
+            if alpha == 50:
+                fade_back = True
+                alpha = 255
+        else:
+            alpha -= 5
+            if create:
+                if end_window == 'level':
+                    add_items()
+                    Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
+                    create = False
+                elif end_window == 'menu':
+                    animated_sprites.empty()
+                    start_menu = ScreenDesigner()
+                    start_menu.render_start_window()
+                    pg.display.flip()
+            if end_window == 'level':
+                castle.render()
+            for sp in animated_sprites:
+                sp.animate()
+            fade_surface.set_alpha(alpha)
+            screen.blit(fade_surface, (0, 0))
+
+        if alpha == 0:
+            for sp in animated_sprites:
+                if isinstance(sp, Player):
+                    sp.kill()
+            return
+        pg.display.flip()
+        clock.tick(FPS)
+
+
 def run_level(lvl: str) -> None:
     """
     Запуск уровня
@@ -1539,17 +1625,17 @@ def run_level(lvl: str) -> None:
 
     global throw, player, castle
     clear_all_groups()
-    add_items()
     for j in animated_sprites:
         if isinstance(j, Player):
             j.kill()
     castle = Castle(lvl, lvl + '.tmx')
-    player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
     pause_button = Button(pg.transform.scale(
         pg.image.load(
             INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a1.png'), (50, 50)),
         pg.transform.scale(pg.image.load(
             INTERFACE_DIR + '/UI_Flat_Button_Large_Lock_01a2.png'), (50, 50)), 745)
+    fade_screen('level')
+    player = Player(2 * SPRITE_SIZE, 2 * SPRITE_SIZE, 'priest3_v2')
     slash_name = 'Blue Slash Thin'
     running = True
     pointed = False

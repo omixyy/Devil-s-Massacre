@@ -386,6 +386,7 @@ class Player(MovingObject):
         super().__init__(x, y, filename)
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
+        self.attack_tick = pg.time.get_ticks()
         self.do_slash = False
         self.dead = False
         self.health = 5
@@ -446,19 +447,22 @@ class Player(MovingObject):
                 else:
                     screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
                                 (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
-            if self.current_slash == frames - 1:
-                self.current_slash = -1
-                self.do_slash = False
+            if (self.current_slash + 1) % 4 == 0:
+                if 'Group' not in foldername or self.current_slash == 19:
+                    self.current_slash = -1
+                    self.do_slash = False
                 for e in enemies:
                     if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
                             'Thin' in foldername):
                         if not e.dead:
                             e.health -= 1
-                    elif 'Group' in foldername:
-                        pass
                     elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
                           'Wide' in foldername):
                         e.health -= 2
+                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                          'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 500:
+                        e.health -= 1
+                        self.attack_tick = pg.time.get_ticks()
 
     def use_current_item(self) -> None:
         if not self.dead:

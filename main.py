@@ -335,6 +335,7 @@ class Chest(AnimatedObject):
             self.do_animation = False
 
     def animate_opening(self) -> None:
+        all_music.chest_opened_music.play()
         self.images = [CHESTS_DIR + f'/chest_open_{j}.png' for j in range(1, 5)]
         self.current_image = 0
         self.image = pg.image.load(self.images[self.current_image])
@@ -434,6 +435,7 @@ class Player(MovingObject):
                 slash_delay = 50
             elif 'Wide' in foldername:
                 slash_delay = 80
+            all_music.slash_player_music.play()
             if self.do_slash:
                 images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
                 tick = pg.time.get_ticks()
@@ -466,6 +468,7 @@ class Player(MovingObject):
 
     def use_current_item(self) -> None:
         if not self.dead:
+            all_music.use_current_item_music.play()
             items = self.inventory.items_images[self.inventory.current_item]
             if items and 'flasks_4' in items[0]:
                 self.health += 1 if self.health < 5 else 0
@@ -529,7 +532,7 @@ class Inventory:
         Добавляет объект в инвентарь
     remove() :
         Удаляет объект из инвентаря
-    spawn_thrown_object() :
+    throw() :
         Создаёт выкинутый объект на карте
     """
 
@@ -586,6 +589,7 @@ class Inventory:
 
     def throw(self) -> None:
         if self.current_item != 0:
+            all_music.throw_item_music.play()
             if self.items_images[self.current_item]:
                 self.throwing = pg.image.load(self.items_images[self.current_item][0])
             mx, my = pg.mouse.get_pos()
@@ -791,6 +795,7 @@ class Monster(MovingObject, Castle):
 
     def hit(self, foldername: str, frames=6) -> None:
         slash_delay = 50
+        all_music.slash_monster_music.play()
         if self.do_slash and pg.time.get_ticks() - self.last >= self.hit_delay:
             images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
             tick = pg.time.get_ticks()
@@ -812,6 +817,7 @@ class Monster(MovingObject, Castle):
             self.last = pg.time.get_ticks()
 
     def die(self):
+        all_music.death_monster_music.play()
         self.dead = True
         self.images = [SKULL_DIR_V2 + f'/skull_v2_dead_{k}.png' for k in range(1, 5)]
 
@@ -881,6 +887,7 @@ class Button:
         else:
             self.current_image = self.image.copy()
         screen.blit(self.current_image, (self.x, self.y_pos))
+        all_music.button_press_music.play()
 
     def update(self) -> None:
         if self.mouse_collide and self.y_pos >= 590:
@@ -1157,6 +1164,27 @@ class InputBox:
         pg.draw.rect(screen, self.color, self.rect, 2)
 
 
+def make_music_file(file):
+    return pg.mixer.Sound(f'music/{file}')
+
+
+class Music:
+    def __init__(self):
+        self.throw_item_music = make_music_file('shumnyiy-sbros-ryukzaka-s-plecha.ogg')
+        self.use_current_item_music = make_music_file('zvuk-kogda-zakinuli-ryukzak-na-plecho.ogg')
+        self.door_opened_music = make_music_file('otkryivanie-i-zakryivanie-dverey-sborka-31873.ogg')
+        self.chest_opened_music = make_music_file('inecraft_chest_open.ogg')
+        self.death_monster_music = make_music_file('kriper-smert.ogg')
+        self.death_player_music = make_music_file('otrabotannyiy-ubiystvennyiy-udar.ogg')
+        self.slash_monster_music = make_music_file('rezkiy-vzmah-mechom.ogg')
+        self.slash_player_music = make_music_file('energichnyiy-rezkiy-vzmah-mechom.ogg')
+        self.button_press_music = make_music_file('kompyuternaya-klaviatura-odinochnoe-najatie-klavish-38325.mp3')
+        self.finish_window_music = make_music_file('e5d80a096ce432d.mp3')
+        self.death_window_music = make_music_file('1de2d2611347013.mp3')
+        self.level_window_music = make_music_file('e74ba825d98595d.mp3')
+        self.start_window_music = make_music_file('449359103103a80.mp3')
+
+
 def move_by_pointer(obj, to_where: tuple[int, int]) -> None:
     if not obj.dead:
         if obj.current_direction[0] > 0:
@@ -1214,6 +1242,7 @@ def start_window() -> None:
     start_menu = ScreenDesigner()  # exit, title, start, level
     if len(animated_sprites) != 0:
         fade_screen('menu')
+    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1221,6 +1250,7 @@ def start_window() -> None:
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if start_menu.start_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     run_level(level)
                 if start_menu.level_button.rect.collidepoint(evt.pos):
                     level_window()
@@ -1255,12 +1285,14 @@ def finish_window(play_time: float) -> None:
         level = available_levels[-1]
     except IndexError:
         pass
+    all_music.finish_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
+                all_music.finish_window_music.stop()
                 if window.menu_button.rect.collidepoint(evt.pos):
                     start_window()
                 if window.exit_button.rect.collidepoint(evt.pos):
@@ -1431,6 +1463,7 @@ def death_window(lvl: str) -> None:
     screen_cpy = screen.copy()
     text_copy = screen.copy()
     tick = pg.time.get_ticks()
+    all_music.death_window_music.play(-1)
     while True:
         count += 1
         for evt in pg.event.get():
@@ -1438,6 +1471,7 @@ def death_window(lvl: str) -> None:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
+                all_music.death_window_music.stop()
                 if death_menu.start_button.rect.collidepoint(evt.pos):
                     run_level(lvl)
                 if death_menu.menu_button.rect.collidepoint(evt.pos):
@@ -1653,6 +1687,8 @@ def run_level(lvl: str) -> None:
     continued = False
     can_finish = False
     start = datetime.now()
+    all_music.level_window_music.play(-1)
+    all_music.level_window_music.stop()
     while running:
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
@@ -1676,6 +1712,8 @@ def run_level(lvl: str) -> None:
                     pause_button.clicks += 1
                     pause_button.y_pos = 590
                 elif event.key == pg.K_e and can_finish:
+                    all_music.level_window_music.stop()
+                    all_music.door_opened_music.stop()
                     finish = datetime.now()
                     finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
@@ -1765,10 +1803,13 @@ def run_level(lvl: str) -> None:
             show_exit_text()
         player.update()
         if player.health <= 0:
+            all_music.level_window_music.stop()
+            all_music.death_player_music.play()
             death_window(lvl)
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:
+            all_music.level_window_music.stop()
             pause_window(pause_button)
             continued = False
         if not pause_button.unpause:
@@ -1811,4 +1852,5 @@ if __name__ == '__main__':
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
     clock = pg.time.Clock()
+    all_music = Music()
     start_window()

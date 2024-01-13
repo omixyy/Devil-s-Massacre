@@ -455,14 +455,17 @@ class Player(MovingObject):
                     self.current_slash = -1
                     self.do_slash = False
                 for e in enemies:
-                    if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
-                            'Thin' in foldername):
+                    if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                            abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                            and 'Thin' in foldername):
                         if not e.dead:
                             e.health -= 1
                     elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                          'Wide' in foldername):
+                          abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                          and 'Wide' in foldername):
                         e.health -= 2
                     elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                          abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
                           'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                         e.health -= 1
                         self.attack_tick = pg.time.get_ticks()
@@ -1586,6 +1589,7 @@ def fade_screen(end_window: str) -> None:
     alpha = 1
     fade_back = False
     create = True
+    start_menu = ScreenDesigner()
     while True:
         for e in pg.event.get():
             if e.type == pg.QUIT:
@@ -1607,7 +1611,6 @@ def fade_screen(end_window: str) -> None:
                     create = False
                 elif end_window == 'menu':
                     animated_sprites.empty()
-                    start_menu = ScreenDesigner()
                     start_menu.render_start_window()
                     pg.display.flip()
             if end_window == 'level':

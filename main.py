@@ -890,7 +890,7 @@ class Button:
         else:
             self.on = False
             self.current_image = self.image.copy()
-        if on_bef != self.on and self.current_image != self.select:
+        if on_bef != self.on:
             all_music.button_press_music.play()
         screen.blit(self.current_image, (self.x, self.y_pos))
 

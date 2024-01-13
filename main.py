@@ -1285,8 +1285,9 @@ def finish_window(play_time: float) -> None:
         elif pg.time.get_ticks() - tick >= 50 and copy_created:
             window.current_ind[1] += 1
             tick = pg.time.get_ticks()
-            window.draw_title(f'Level complete! Play time: {play_time}'[window.current_ind[0]:window.current_ind[1]],
-                              WIDTH // 2, HEIGHT // 4)
+            window.draw_title(f'Level complete!'[window.current_ind[0]:window.current_ind[1]], WIDTH // 2, HEIGHT // 4)
+            window.draw_title(f'Play time: {play_time}'[window.current_ind[0]:window.current_ind[1]],
+                              WIDTH // 2, HEIGHT // 4 + 50)
             text_copy = screen.copy()
             text_copy_created = True
         if text_copy_created:

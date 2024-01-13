@@ -1390,6 +1390,7 @@ def death_window(lvl: str) -> None:
     copy_created = False
     text_copy_created = False
     screen_cpy = screen.copy()
+    text_copy = screen.copy()
     tick = pg.time.get_ticks()
     while True:
         count += 1

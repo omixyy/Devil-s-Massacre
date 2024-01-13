@@ -716,7 +716,7 @@ class Monster(MovingObject, Castle):
         self.current_slash = -1
         self.slash_tick = pg.time.get_ticks()
         self.do_slash = False
-        self.health = 3
+        self.health = 5
         self.current_direction = 1, 0
         self.view_radius = 100
         self.afk_move = True
@@ -786,7 +786,7 @@ class Monster(MovingObject, Castle):
                         PLAYER_SPEED * self.current_direction[0], PLAYER_SPEED * self.current_direction[1])
 
     def hit(self, foldername: str, frames=6) -> None:
-        slash_delay = 80
+        slash_delay = 50
         if self.do_slash and pg.time.get_ticks() - self.last >= self.hit_delay:
             images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
             tick = pg.time.get_ticks()
@@ -969,9 +969,12 @@ class ScreenDesigner:
         self.back_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
                                   pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 25,
                                   select=pg.transform.scale(self.pressed, (200, 100)))
-        self.restart_button = Button(pg.transform.scale(self.not_pressed, (260, 100)),
-                                   pg.transform.scale(self.pressed, (260, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 60,
-                                   select=pg.transform.scale(self.pressed, (260, 100)))
+        self.restart_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
+                                     pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 39,
+                                     select=pg.transform.scale(self.pressed, (200, 100)))
+        self.death_screen_created = False
+        self.death_text = 'YOU DIED'
+        self.current_ind = [0, 1]
         self.list_levels_buttons = []
 
     def render_start_window(self) -> None:
@@ -1008,15 +1011,22 @@ class ScreenDesigner:
         self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * 3 + 80)
 
     def render_death_window(self) -> None:
-        self.draw_title("YOU DIED!", WIDTH // 2, HEIGHT // 4)
-        self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 165)
-        self.draw_restart_button(WIDTH // 2 - 100, HEIGHT // 2 - 60)
-        self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 225)
+        if not self.death_screen_created:
+            self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 165 - 500)
+            self.draw_restart_button(WIDTH // 2 - 100, HEIGHT // 2 - 50 - 500)
+            self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 225 - 500)
+            self.death_screen_created = True
+        else:
+            self.draw_exit_button(self.exit_button.x, self.exit_button.y_pos)
+            self.draw_restart_button(self.restart_button.x, self.restart_button.y_pos)
+            self.draw_menu_button(self.menu_button.x, self.menu_button.y_pos)
 
     def draw_restart_button(self, x: int, y: int) -> None:
+        self.restart_button.x = x
+        self.restart_button.y_pos = y
         self.restart_button.draw_changing_pic()
-        screen.blit(self.font.render('RESTART', 1, (0, 0, 0)),
-                    (self.restart_button.x + 37, self.restart_button.y_pos + 21))
+        screen.blit(self.font.render('RETRY', 1, (0, 0, 0)),
+                    (self.restart_button.x + 40, self.restart_button.y_pos + 22))
 
     def draw_choose_level_button(self, j: int, x: int, y: int) -> None:
         text = self.font.render(f'Level {j + 1} ', 1, (0, 0, 0))
@@ -1367,7 +1377,8 @@ def pause_window(pause_button: Button) -> None:
         pg.display.flip()
         clock.tick(FPS)
 
-def death_window(lvl: str)-> None:
+
+def death_window(lvl: str) -> None:
     """
     Работа экрана смерти
     :returns: None
@@ -1376,6 +1387,10 @@ def death_window(lvl: str)-> None:
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
     surf_alpha.set_alpha(1)
     count = -1
+    copy_created = False
+    text_copy_created = False
+    screen_cpy = screen.copy()
+    tick = pg.time.get_ticks()
     while True:
         count += 1
         for evt in pg.event.get():
@@ -1390,12 +1405,30 @@ def death_window(lvl: str)-> None:
                 if death_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
-        death_menu.render_death_window()
-        if count <= 50 and count % 2 == 0:
+        if count == 30:
+            if not copy_created:
+                screen_cpy = screen.copy()
+                copy_created = True
+            death_menu.render_death_window()
+        if count <= 30 and count % 2 == 0:
             screen.blit(surf_alpha, (0, 0))
-
+        if copy_created:
+            screen.blit(screen_cpy, (0, 0))
+            death_menu.render_death_window()
+        if death_menu.restart_button.y_pos <= HEIGHT // 2 - 60:
+            animate_buttons([death_menu.restart_button, death_menu.menu_button, death_menu.exit_button])
+        elif pg.time.get_ticks() - tick >= 50 and copy_created:
+            death_menu.current_ind[1] += 1
+            tick = pg.time.get_ticks()
+            death_menu.draw_title(death_menu.death_text[death_menu.current_ind[0]:death_menu.current_ind[1]],
+                                  WIDTH // 2, HEIGHT // 4)
+            text_copy = screen.copy()
+            text_copy_created = True
+        if text_copy_created:
+            screen.blit(text_copy, (0, 0))
         pg.display.flip()
         clock.tick(FPS)
+
 
 def add_items() -> None:
     """
@@ -1457,6 +1490,11 @@ def spawn_object(elem_dir: str, from_chest: bool = False) -> None:
         TeleportFlask(spawn_pos[0], spawn_pos[1], 'flasks_2')
     elif 'flasks_4' in elem_dir:
         HealFlask(spawn_pos[0], spawn_pos[1], 'flasks_4')
+
+
+def animate_buttons(buttons: list[Button]):
+    for button in buttons:
+        button.y_pos += 7
 
 
 def clear_all_groups() -> None:
@@ -1634,7 +1672,7 @@ def run_level(lvl: str) -> None:
         if can_finish:
             show_exit_text()
         player.update()
-        if player.health == 5:
+        if player.health <= 0:
             death_window(lvl)
         pg.display.flip()
         clock.tick(FPS)

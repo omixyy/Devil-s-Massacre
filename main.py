@@ -5,6 +5,7 @@ import pytmx
 import json
 from datetime import datetime
 from constants import *
+import time
 
 list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
@@ -435,7 +436,6 @@ class Player(MovingObject):
                 slash_delay = 50
             elif 'Wide' in foldername:
                 slash_delay = 80
-            all_music.slash_player_music.play()
             if self.do_slash:
                 images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
                 tick = pg.time.get_ticks()
@@ -450,6 +450,7 @@ class Player(MovingObject):
                     screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
                                 (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
             if (self.current_slash + 1) % 4 == 0:
+                all_music.slash_player_music.play()
                 if 'Group' not in foldername or self.current_slash == 19:
                     self.current_slash = -1
                     self.do_slash = False
@@ -468,9 +469,10 @@ class Player(MovingObject):
 
     def use_current_item(self) -> None:
         if not self.dead:
-            all_music.use_current_item_music.play()
             items = self.inventory.items_images[self.inventory.current_item]
             if items and 'flasks_4' in items[0]:
+                # :TODO: Добавить на синее зелье звук
+                all_music.use_current_item_music.play()
                 self.health += 1 if self.health < 5 else 0
                 del self.inventory.items_images[self.inventory.current_item][0]
 
@@ -589,7 +591,6 @@ class Inventory:
 
     def throw(self) -> None:
         if self.current_item != 0:
-            all_music.throw_item_music.play()
             if self.items_images[self.current_item]:
                 self.throwing = pg.image.load(self.items_images[self.current_item][0])
             mx, my = pg.mouse.get_pos()
@@ -795,7 +796,6 @@ class Monster(MovingObject, Castle):
 
     def hit(self, foldername: str, frames=6) -> None:
         slash_delay = 50
-        all_music.slash_monster_music.play()
         if self.do_slash and pg.time.get_ticks() - self.last >= self.hit_delay:
             images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
             tick = pg.time.get_ticks()
@@ -812,12 +812,15 @@ class Monster(MovingObject, Castle):
                 screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
                             (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
         if self.current_slash == frames - 1:
+            all_music.slash_monster_music.play()
             self.current_slash = -1
             self.do_slash = False
             self.last = pg.time.get_ticks()
 
     def die(self):
-        all_music.death_monster_music.play()
+        if not self.dead:
+            time.sleep(0.0001)
+            all_music.death_monster_music.play()
         self.dead = True
         self.images = [SKULL_DIR_V2 + f'/skull_v2_dead_{k}.png' for k in range(1, 5)]
 
@@ -918,7 +921,7 @@ class ScreenDesigner:
     Атрибуты
     ------
     font : Font
-        Пиксельный шрифт
+        Пиксельный шрифт1
     not_pressed : Surface
         Изображение кнопки в ненажатом состоянии
     pressed : Surface
@@ -1184,33 +1187,19 @@ def make_buffer(array):
 
 class Music:
     def __init__(self):
-        """self.throw_item_music = make_music_file('shumnyiy-sbros-ryukzaka-s-plecha.ogg')
-        self.use_current_item_music = make_music_file('zvuk-kogda-zakinuli-ryukzak-na-plecho.ogg')
-        self.door_opened_music = make_music_file('otkryivanie-i-zakryivanie-dverey-sborka-31873.ogg')
-        self.chest_opened_music = make_music_file('inecraft_chest_open.ogg')
-        self.death_monster_music = make_music_file('kriper-smert.ogg')
-        self.death_player_music = make_music_file('otrabotannyiy-ubiystvennyiy-udar.ogg')
-        self.slash_monster_music = make_music_file('rezkiy-vzmah-mechom.ogg')
         self.slash_player_music = make_music_file('energichnyiy-rezkiy-vzmah-mechom.ogg')
-        self.button_press_music = make_music_file('kompyuternaya-klaviatura-odinochnoe-najatie-klavish-38325.mp3')
+        self.slash_monster_music = make_music_file('rezkiy-vzmah-mechom.ogg')
+        self.death_monster_music = make_music_file('kriper-smert.ogg')
+        self.use_current_item_music = make_music_file('zvuk-kogda-zakinuli-ryukzak-na-plecho.ogg')
+        self.throw_item_music = make_music_file('shumnyiy-sbros-ryukzaka-s-plecha.ogg')
+        self.door_opened_music = make_music_file('otkryivanie-i-zakryivanie-dverey-sborka-31873.ogg')
+        self.door_opened_music = make_buffer(self.door_opened_music.get_raw()[0:80000])
+        self.chest_opened_music = make_music_file('inecraft_chest_open.ogg')
         self.finish_window_music = make_music_file('e5d80a096ce432d.mp3')
         self.death_window_music = make_music_file('1de2d2611347013.mp3')
-        self.level_window_music = make_music_file('e74ba825d98595d.mp3')
-        self.start_window_music = make_music_file('449359103103a80.mp3')
-        """
-        self.throw_item_music = make_music_file('silent.wav')
-        self.use_current_item_music = make_music_file('silent.wav')
-        self.door_opened_music = make_music_file('silent.wav')
-        self.chest_opened_music = make_music_file('silent.wav')
-        self.death_monster_music = make_music_file('silent.wav')
-        self.death_player_music = make_music_file('silent.wav')
-        self.slash_monster_music = make_music_file('silent.wav')
-        self.slash_player_music = make_music_file('silent.wav')
         self.button_press_music = make_music_file('kompyuternaya-klaviatura-odinochnoe-najatie-klavish-38325.mp3')
         self.button_press_music = make_buffer(self.button_press_music.get_raw()[70000:80000])
-        self.finish_window_music = make_music_file('silent.wav')
-        self.death_window_music = make_music_file('silent.wav')
-        self.level_window_music = make_music_file('silent.wav')
+        self.level_window_music = make_music_file('silent.wav') #'e74ba825d98595d.mp3'
         self.start_window_music = make_music_file('449359103103a80.mp3')
 
 
@@ -1369,12 +1358,14 @@ def level_window() -> None:
 
     global level, n_level
     window = ScreenDesigner()
+    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
+                all_music.start_window_music.stop()
                 if window.menu_button.rect.collidepoint(evt.pos):
                     start_window()
                 if any([j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons]):
@@ -1408,7 +1399,7 @@ def settings_window() -> None:
     for k in range(7):
         boxes_list[k].text = text_names[k]
     window = ScreenDesigner()
-    all_music.start_window_music.stop()
+    all_music.start_window_music.play(-1)
     while True:
         texts = [k.text for k in boxes_list]
         if all(texts) and not len(set(texts)) < len(texts):
@@ -1451,7 +1442,7 @@ def pause_window(pause_button: Button) -> None:
 
     pause_menu = ScreenDesigner()
     screen_cpy = screen.copy()
-    all_music.start_window_music.play()
+    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1474,6 +1465,7 @@ def pause_window(pause_button: Button) -> None:
                     settings_window()
         pause_button.y_pos = 590
         if pause_button.unpause:
+            all_music.level_window_music.play(-1)
             return
         screen.blit(screen_cpy, (0, 0))
         pause_menu.render_pause_window()
@@ -1644,6 +1636,7 @@ def fade_screen(end_window: str) -> None:
     alpha = 1
     fade_back = False
     create = True
+    start_menu = ScreenDesigner()
     while True:
         for e in pg.event.get():
             if e.type == pg.QUIT:
@@ -1665,7 +1658,6 @@ def fade_screen(end_window: str) -> None:
                     create = False
                 elif end_window == 'menu':
                     animated_sprites.empty()
-                    start_menu = ScreenDesigner()
                     start_menu.render_start_window()
                     pg.display.flip()
             if end_window == 'level':
@@ -1721,7 +1713,6 @@ def run_level(lvl: str) -> None:
     can_finish = False
     start = datetime.now()
     all_music.level_window_music.play(-1)
-    all_music.level_window_music.stop()
     while running:
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
@@ -1746,7 +1737,7 @@ def run_level(lvl: str) -> None:
                     pause_button.y_pos = 590
                 elif event.key == pg.K_e and can_finish:
                     all_music.level_window_music.stop()
-                    all_music.door_opened_music.stop()
+                    all_music.door_opened_music.play()
                     finish = datetime.now()
                     finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
@@ -1829,6 +1820,7 @@ def run_level(lvl: str) -> None:
             player.inventory.throw()
         elif player.inventory.throwing is not None:
             spawn_object(player.inventory.thrown_elem)
+            all_music.throw_item_music.play()
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
@@ -1837,7 +1829,6 @@ def run_level(lvl: str) -> None:
         player.update()
         if player.health <= 0:
             all_music.level_window_music.stop()
-            all_music.death_player_music.play()
             death_window(lvl)
         pg.display.flip()
         clock.tick(FPS)
@@ -1846,6 +1837,7 @@ def run_level(lvl: str) -> None:
             pause_window(pause_button)
             continued = False
         if not pause_button.unpause:
+            all_music.level_window_music.play(-1)
             continued = True
         can_finish = (player.get_center_cell() in [(43, 37), (44, 37), (45, 37), (46, 37),
                                                    (43, 38), (44, 38), (45, 48), (46, 38)] and player.has_key())

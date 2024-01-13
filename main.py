@@ -1,3 +1,5 @@
+import random
+
 import pygame as pg
 from random import choice
 import sys
@@ -150,7 +152,8 @@ class MovingObject(AnimatedObject):
     """
 
     def __init__(self, x: int, y: int, filename: str) -> None:
-        directory = PLAYERS_DIR if 'priest' in filename else SKULL_DIR_V2
+        directory = PLAYERS_DIR if 'priest' in filename else SKULL_DIR_V2 if 'skull' in filename \
+            else SKELETON1_DIR_V2 if 'skeleton' in filename else SKELETON2_DIR_V2
         groups = [animated_sprites] if 'priest' in filename else [animated_sprites, enemies]
         super().__init__(groups, directory, x, y, filename)
         self.current_direction = (0, 0)
@@ -460,7 +463,7 @@ class Player(MovingObject):
                           'Wide' in foldername):
                         e.health -= 2
                     elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                          'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 500:
+                          'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                         e.health -= 1
                         self.attack_tick = pg.time.get_ticks()
 
@@ -470,6 +473,10 @@ class Player(MovingObject):
             if items and 'flasks_4' in items[0]:
                 self.health += 1 if self.health < 5 else 0
                 del self.inventory.items_images[self.inventory.current_item][0]
+            elif items and 'flasks_2' in items[0]:
+                del self.inventory.items_images[self.inventory.current_item][0]
+                for e in enemies:
+                    e.can_change_pic = True
 
     def has_free_space(self, file: str) -> bool:
         file += '_1.png'
@@ -723,7 +730,6 @@ class Monster(MovingObject, Castle):
         self.health = 5
         self.current_direction = 1, 0
         self.view_radius = 100
-        self.afk_move = True
         self.go_to_player = False
         self.start_x, _ = self.pos
         self.x, self.y = self.pos
@@ -731,39 +737,25 @@ class Monster(MovingObject, Castle):
         self.last = 0
         self.collided = False
         self.dead = False
-
-    def move_right_left(self):
-        if self.afk_move and not self.dead:
-            if abs(self.current_direction[1]) == 1:
-                self.current_direction = (1, 0)
-            if self.current_direction[0] == 1 and self.x >= self.start_x - 30:
-                if castle.is_free((int((self.x - PLAYER_SPEED // 2) // SPRITE_SIZE), self.y // SPRITE_SIZE)):
-                    self.x -= PLAYER_SPEED // 2
-                else:
-                    self.x += PLAYER_SPEED // 2
-                    self.current_direction = -self.current_direction[0], self.current_direction[1]
-                self.flip = True
-            elif self.current_direction[0] == 1:
-                self.current_direction = -1, 0
-            if self.current_direction[0] == -1 and self.x <= self.start_x + 30:
-                if castle.is_free((int((self.x + PLAYER_SPEED // 2) // SPRITE_SIZE), self.y // SPRITE_SIZE)):
-                    self.x += PLAYER_SPEED // 2
-                else:
-                    self.current_direction = -self.current_direction[0], self.current_direction[1]
-                    self.x -= PLAYER_SPEED // 2
-                self.flip = False
-            elif self.current_direction[0] == -1:
-                self.current_direction = 1, 0
-            self.pos = self.x, self.y
-            screen.blit(self.image, (self.x, self.y))
+        self.can_change_pic = False
 
     def check(self):
+        self.rect.topleft = self.x, self.y
         self.go_to_player = (abs(player.pos[0] - self.pos[0]) <= self.view_radius and
                              abs(player.pos[1] - self.pos[1]) <= self.view_radius)
-        self.afk_move = not self.go_to_player
 
         if self.health <= 0:
             self.die()
+
+        if self.can_change_pic:
+            mx, my = pg.mouse.get_pos()
+            pressed = pg.mouse.get_pressed()
+            if pg.Rect((self.rect[0] - 8, self.rect[1] - 8, 2 * SPRITE_SIZE, 2 * SPRITE_SIZE)).collidepoint((mx, my)):
+                self.images = [SKULL_DIR_V1 + f'/skull_v1_{j}.png' for j in range(1, 5)]
+                if pressed[0]:
+                    player.pos = (mx, my)
+            elif not self.dead:
+                self.images = [SKULL_DIR_V2 + f'/skull_v2_{j}.png' for j in range(1, 5)]
 
     def move_to_player(self):
         if not self.dead:
@@ -774,12 +766,12 @@ class Monster(MovingObject, Castle):
                     not player_collide):
                 move_by_pointer(self, player.get_center_cell())
                 self.start_x = self.pos[0] - 30
-            elif (not self.afk_move and
-                  abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE // 2):
+            elif (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                  abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE):
                 self.do_slash = True
                 self.hit('Red Slash Thin')
 
-            if player_collide:
+            if player_collide and player_collide[0] is self:
                 self.current_direction = player.current_direction
                 if castle.is_free((
                         (self.get_center_coordinates()[0] + SPRITE_SIZE // 2 * self.current_direction[0] +
@@ -813,7 +805,7 @@ class Monster(MovingObject, Castle):
 
     def die(self):
         self.dead = True
-        self.images = [SKULL_DIR_V2 + f'/skull_v2_dead_{k}.png' for k in range(1, 5)]
+        self.images = [self.dir + f'/{self.filename}_dead_{k}.png' for k in range(1, 5)]
 
 
 class Button:
@@ -1158,6 +1150,13 @@ class InputBox:
 
 
 def move_by_pointer(obj, to_where: tuple[int, int]) -> None:
+    """
+    Передвигает объект к указанной точке
+    :param obj: Передвигаемый объект
+    :param to_where: Куда передвинуть
+    :returns: None
+    """
+
     if not obj.dead:
         if obj.current_direction[0] > 0:
             if (castle.get_distance_ox(obj.get_left_up_cell())[1] <
@@ -1501,13 +1500,17 @@ def add_items() -> None:
             elif elem == 'flag':
                 Flag(pos_x, pos_y, 'flag')
             elif elem == 'skulls':
-                Monster(pos_x, pos_y, 'skull_v2')
+                x = Monster(pos_x, pos_y, 'skull_v2')
+                x.flip = random.randint(0, 1)
+            elif elem == 'skeleton1':
+                x = Monster(pos_x, pos_y, 'skeleton_v2')
+                x.flip = random.randint(0, 1)
 
 
 def spawn_object(elem_dir: str, from_chest: bool = False) -> None:
     """
     Создаёт объект на карте при открытии сундука или
-    выкидывании объекта из инвентаря
+    выкидывании объекта из инвентаря.
     :param from_chest: Показывает, получен ли предмет из сундука или нет
     :param elem_dir: Путь до картинки объекта
     :returns: None
@@ -1534,7 +1537,7 @@ def spawn_object(elem_dir: str, from_chest: bool = False) -> None:
 
 def animate_buttons(buttons: list[Button]):
     """
-    Уменьшает координату по оси y для кнопок в списке buttons
+    Уменьшает координату по оси y для кнопок в списке buttons.
     :param buttons: Список кнопок, для которых нужно уменьшать координату
     :return:
     """
@@ -1545,7 +1548,7 @@ def animate_buttons(buttons: list[Button]):
 
 def clear_all_groups() -> None:
     """
-    Очистка групп от спрайтов
+    Очистка групп от спрайтов.
     :returns: None
     """
 
@@ -1562,7 +1565,7 @@ def clear_all_groups() -> None:
 
 def show_exit_text() -> None:
     """
-    Выводит текст при приближении к воротам
+    Выводит текст при приближении к воротам.
     :return: None
     """
 
@@ -1572,6 +1575,12 @@ def show_exit_text() -> None:
 
 
 def fade_screen(end_window: str) -> None:
+    """
+    Работа экрана при анимации затемнения.
+    :param end_window: Указывает на окно после анимации
+    :returns: None
+    """
+
     fade_surface = pg.Surface(screen.get_size())
     fade_surface.fill(pg.Color('black'))
     alpha = 1
@@ -1746,10 +1755,6 @@ def run_level(lvl: str) -> None:
                 spawn_object(drop.dir + drop.filename, from_chest=True)
         for sprite in can_be_picked_up:
             sprite.update()
-        for enemy in enemies:
-            enemy.move_right_left()
-            enemy.check()
-            enemy.move_to_player()
         player.inventory.draw()
         player.inventory.update()
         pause_button.draw()
@@ -1766,6 +1771,9 @@ def run_level(lvl: str) -> None:
         player.update()
         if player.health <= 0:
             death_window(lvl)
+        for enemy in enemies:
+            enemy.check()
+            enemy.move_to_player()
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:
@@ -1783,6 +1791,7 @@ def kill_arrow() -> None:
     тем самым он перестаёт отрисовываться.
     :returns: None
     """
+
     for obj in animated_sprites:
         if obj.filename == 'arrow':
             obj.kill()
@@ -1793,6 +1802,7 @@ def terminate() -> None:
     Выход из игры.
     :returns: None
     """
+
     pg.quit()
     sys.exit()
 

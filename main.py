@@ -1871,11 +1871,11 @@ castle: Castle
 # ЗАПУСК
 if __name__ == '__main__':
     pg.init()
+    all_music = Music()
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
     screen.fill(pg.Color('black'))
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
     clock = pg.time.Clock()
-    all_music = Music()
     start_window()

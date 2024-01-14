@@ -153,7 +153,7 @@ class MovingObject(AnimatedObject):
 
     def __init__(self, x: int, y: int, filename: str) -> None:
         directory = PLAYERS_DIR if 'priest' in filename else SKULL_DIR_V2 if 'skull' in filename \
-            else SKELETON1_DIR_V2 if 'skeleton' in filename else SKELETON2_DIR_V2
+            else SKELETON1_DIR_V2 if 'skeleton' in filename else VAMPIRE_DIR_V2
         groups = [animated_sprites] if 'priest' in filename else [animated_sprites, enemies]
         super().__init__(groups, directory, x, y, filename)
         self.current_direction = (0, 0)
@@ -455,17 +455,18 @@ class Player(MovingObject):
                     self.current_slash = -1
                     self.do_slash = False
                 for e in enemies:
-                    if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                    if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
                             abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
                             and 'Thin' in foldername):
                         if not e.dead:
                             e.health -= 1
-                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                            # e.images =
+                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
                           abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
                           and 'Wide' in foldername):
                         e.health -= 2
-                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                          abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
+                          abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
                           'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                         e.health -= 1
                         self.attack_tick = pg.time.get_ticks()
@@ -754,11 +755,17 @@ class Monster(MovingObject, Castle):
             mx, my = pg.mouse.get_pos()
             pressed = pg.mouse.get_pressed()
             if pg.Rect((self.rect[0] - 8, self.rect[1] - 8, 2 * SPRITE_SIZE, 2 * SPRITE_SIZE)).collidepoint((mx, my)):
-                self.images = [SKULL_DIR_V1 + f'/skull_v1_{j}.png' for j in range(1, 5)]
+                self.images = [self.dir.rstrip('v2') + 'v1' + f'/{self.filename.rstrip("_v2") + "_v1"}_{j}.png'
+                               for j in range(1, 5)]
                 if pressed[0]:
                     player.pos = (mx, my)
             elif not self.dead:
-                self.images = [SKULL_DIR_V2 + f'/skull_v2_{j}.png' for j in range(1, 5)]
+                self.images = [self.dir + f'/{self.filename}_{j}.png' for j in range(1, 5)]
+
+        if (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
+                abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE):
+            self.do_slash = True
+            self.hit('Red Slash Thin')
 
     def move_to_player(self):
         if not self.dead:
@@ -768,11 +775,6 @@ class Monster(MovingObject, Castle):
                      abs(self.get_center_cell()[1] - player.get_center_cell()[1]) >= 2) and
                     not player_collide):
                 move_by_pointer(self, player.get_center_cell())
-                self.start_x = self.pos[0] - 30
-            elif (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                  abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE):
-                self.do_slash = True
-                self.hit('Red Slash Thin')
 
             if player_collide and player_collide[0] is self:
                 self.current_direction = player.current_direction
@@ -1270,14 +1272,14 @@ def finish_window(play_time: float) -> None:
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
 
-                    # TODO
+                    """# TODO
                     if level in ['level5']:
                         n_level = 0
                         level = list_of_levels[0]
                         start_window()
-                    else:
-                        n_level += 1
-                        run_level(level)
+                    else:"""
+                    n_level += 1
+                    run_level(level)
         window.render_finish_window()
         if not copy_created:
             screen_cpy = screen.copy()
@@ -1507,6 +1509,9 @@ def add_items() -> None:
                 x.flip = random.randint(0, 1)
             elif elem == 'skeleton1':
                 x = Monster(pos_x, pos_y, 'skeleton_v2')
+                x.flip = random.randint(0, 1)
+            elif elem == 'vampire':
+                x = Monster(pos_x, pos_y, 'vampire_v2')
                 x.flip = random.randint(0, 1)
 
 
@@ -1743,7 +1748,11 @@ def run_level(lvl: str) -> None:
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
+        for enemy in enemies:
+            enemy.move_to_player()
         castle.render()
+        for enemy in enemies:
+            enemy.check()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
                 player.slash(slash_name)
@@ -1774,9 +1783,6 @@ def run_level(lvl: str) -> None:
         player.update()
         if player.health <= 0:
             death_window(lvl)
-        for enemy in enemies:
-            enemy.check()
-            enemy.move_to_player()
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:

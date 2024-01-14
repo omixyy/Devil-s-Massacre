@@ -393,6 +393,7 @@ class Player(MovingObject):
         self.do_slash = False
         self.dead = False
         self.health = 5
+        self.can_tp = False
         self.inventory = Inventory()
 
     def handle_keypress(self, keys: pg.key.ScancodeWrapper) -> None:
@@ -481,6 +482,7 @@ class Player(MovingObject):
                 del self.inventory.items_images[self.inventory.current_item][0]
                 for e in enemies:
                     e.can_change_pic = True
+                self.can_tp = True
 
     def has_free_space(self, file: str) -> bool:
         file += '_1.png'
@@ -751,7 +753,7 @@ class Monster(MovingObject, Castle):
         if self.health <= 0:
             self.die()
 
-        if self.can_change_pic:
+        if self.can_change_pic and player.can_tp:
             mx, my = pg.mouse.get_pos()
             pressed = pg.mouse.get_pressed()
             if pg.Rect((self.rect[0] - 8, self.rect[1] - 8, 2 * SPRITE_SIZE, 2 * SPRITE_SIZE)).collidepoint((mx, my)):
@@ -759,11 +761,16 @@ class Monster(MovingObject, Castle):
                                for j in range(1, 5)]
                 if pressed[0]:
                     player.pos = (mx, my)
+                    player.can_tp = False
             elif not self.dead:
                 self.images = [self.dir + f'/{self.filename}_{j}.png' for j in range(1, 5)]
 
+        if not player.can_tp and not self.dead:
+            self.images = [self.dir + f'/{self.filename}_{j}.png' for j in range(1, 5)]
+
         if (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
-                abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE):
+                abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE and
+                not self.dead):
             self.do_slash = True
             self.hit('Red Slash Thin')
 
@@ -1816,7 +1823,7 @@ def terminate() -> None:
     sys.exit()
 
 
-# Самые широко используемые переменные
+# Самые часто используемые переменные
 throw: bool
 player: Player
 castle: Castle

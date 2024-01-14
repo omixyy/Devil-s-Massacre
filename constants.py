@@ -15,6 +15,7 @@ SKELETON1_DIR_V1 = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/monste
 SKELETON1_DIR_V2 = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/monsters_idle/skeleton1/v2'
 SKELETON2_DIR_V1 = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/monsters_idle/skeleton2/v1'
 SKELETON2_DIR_V2 = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/monsters_idle/skeleton2/v2'
+VAMPIRE_DIR_V2 = 'tiles/2D Pixel Dungeon Asset Pack/Character_animation/monsters_idle/vampire/v2'
 SPRITE_SIZE = 16
 PLAYER_SPEED = 120   # [px/fps]
 PLAYER_SPEED /= FPS  # [px] - изменение координат за кадр

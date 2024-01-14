@@ -13,6 +13,8 @@ available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
 
+auto = False
+
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
@@ -159,6 +161,7 @@ class MovingObject(AnimatedObject):
         self.current_direction = (0, 0)
         self.collide_vertex = self.get_center_cell()
         self.x, self.y = self.pos
+        self.dead = False
 
     def move_by_delta(self, dx=1.0, dy=1.0) -> None:
         self.pos = self.pos[0] + dx, self.pos[1] + dy
@@ -446,6 +449,25 @@ class Player(MovingObject):
                     self.current_slash = (self.current_slash + 1) % frames
                     image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                     self.slash_tick = pg.time.get_ticks()
+                    if self.current_slash == 0:
+                        for e in enemies:
+                            if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
+                                1]) <= SPRITE_SIZE // 2 and
+                                    abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                                    and 'Thin' in foldername):
+                                if not e.dead:
+                                    e.health -= 1
+                            elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
+                                1]) <= SPRITE_SIZE // 2 and
+                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                                  and 'Wide' in foldername):
+                                e.health -= 2
+                            elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
+                                1]) <= SPRITE_SIZE // 2 and
+                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
+                                  'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
+                                e.health -= 1
+                                self.attack_tick = pg.time.get_ticks()
                 if not self.flip:
                     screen.blit(image, (self.pos[0], self.pos[1] - 10))
                 else:
@@ -455,22 +477,6 @@ class Player(MovingObject):
                 if 'Group' not in foldername or self.current_slash == 19:
                     self.current_slash = -1
                     self.do_slash = False
-                for e in enemies:
-                    if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
-                            abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
-                            and 'Thin' in foldername):
-                        if not e.dead:
-                            e.health -= 1
-                            # e.images =
-                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
-                          abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
-                          and 'Wide' in foldername):
-                        e.health -= 2
-                    elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
-                          abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
-                          'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
-                        e.health -= 1
-                        self.attack_tick = pg.time.get_ticks()
 
     def use_current_item(self) -> None:
         if not self.dead:
@@ -497,6 +503,8 @@ class Player(MovingObject):
             self.dead = True
             screen.blit(pg.image.load(INTERFACE_DIR + '/UI_Flat_Cross_Large.png'),
                         (self.pos[0] - SPRITE_SIZE // 2, self.pos[1] - SPRITE_SIZE // 2))
+        if self.do_slash:
+            self.slash('Blue Slash Thin')
 
 
 class Pointer(AnimatedObject):
@@ -1161,7 +1169,7 @@ class InputBox:
         pg.draw.rect(screen, self.color, self.rect, 2)
 
 
-def move_by_pointer(obj, to_where: tuple[int, int]) -> None:
+def move_by_pointer(obj: MovingObject, to_where: tuple[int, int]) -> None:
     """
     Передвигает объект к указанной точке
     :param obj: Передвигаемый объект
@@ -1278,7 +1286,6 @@ def finish_window(play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-
                     """# TODO
                     if level in ['level5']:
                         n_level = 0
@@ -1759,6 +1766,10 @@ def run_level(lvl: str) -> None:
             enemy.move_to_player()
         castle.render()
         for enemy in enemies:
+            if (abs(player.get_center_coordinates()[1] - enemy.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
+                    abs(player.get_center_coordinates()[0] - enemy.get_center_coordinates()[0]) <= SPRITE_SIZE and
+                    not enemy.dead and auto):
+                player.do_slash = True
             enemy.check()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':

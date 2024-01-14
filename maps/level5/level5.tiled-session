@@ -16,7 +16,7 @@
             "selectedLayer": 0,
             "viewCenter": {
                 "x": 407.79429489754926,
-                "y": 319.00361591000404
+                "y": 318.2000803535556
             }
         },
         "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level2/level2.tmx": {
@@ -31,6 +31,14 @@
             "scaleInDock": 1
         },
         "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level3/level3.tmx": {
+            "scale": 1.2718125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 400.60936655363906,
+                "y": 320.0157255884811
+            }
+        },
+        "C:/Users/ivank/PycharmProjects/Devil-s-Massacre/maps/level4/level4.tmx": {
             "scale": 1.2718125,
             "selectedLayer": 0,
             "viewCenter": {

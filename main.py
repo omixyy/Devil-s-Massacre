@@ -1,5 +1,4 @@
 import random
-
 import pygame as pg
 from random import choice
 import sys
@@ -464,7 +463,8 @@ class Player(MovingObject):
                                 e.health -= 2
                             elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
                                 1]) <= SPRITE_SIZE and
-                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
+                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[
+                                      0]) <= SPRITE_SIZE and
                                   'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                                 e.health -= 1
                                 self.attack_tick = pg.time.get_ticks()
@@ -768,7 +768,7 @@ class Monster(MovingObject, Castle):
                 self.images = [self.dir.rstrip('v2') + 'v1' + f'/{self.filename.rstrip("_v2") + "_v1"}_{j}.png'
                                for j in range(1, 5)]
                 if pressed[0]:
-                    player.pos = (mx, my)
+                    player.pos = (mx - SPRITE_SIZE, my - SPRITE_SIZE)
                     player.can_tp = False
             elif not self.dead:
                 self.images = [self.dir + f'/{self.filename}_{j}.png' for j in range(1, 5)]
@@ -781,6 +781,11 @@ class Monster(MovingObject, Castle):
                 not self.dead):
             self.do_slash = True
             self.hit('Red Slash Thin')
+        if auto and not self.dead and pg.Rect(
+                (self.rect[0] - 8, self.rect[1] - 8, 2 * SPRITE_SIZE, 2 * SPRITE_SIZE)
+        ).collidepoint(pg.mouse.get_pos()):
+            self.images = [self.dir.rstrip('v2') + 'v1' + f'/{self.filename.rstrip("_v2") + "_v1"}_{j}.png'
+                           for j in range(1, 5)]
 
     def move_to_player(self):
         if not self.dead:
@@ -1784,13 +1789,6 @@ def run_level(lvl: str) -> None:
         for enemy in enemies:
             enemy.move_to_player()
         castle.render()
-        for enemy in enemies:
-            if (abs(player.get_center_coordinates()[1] - enemy.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                    abs(player.get_center_coordinates()[0] - enemy.get_center_coordinates()[0]) <= SPRITE_SIZE and
-                    not enemy.dead and auto):
-                player.do_slash = True
-                auto_slash = True
-            enemy.check()
         if player.do_slash and not auto_slash:
             if slash_name != 'Blue Group Slashes':
                 player.slash(slash_name)
@@ -1805,6 +1803,13 @@ def run_level(lvl: str) -> None:
                 spawn_object(drop.dir + drop.filename, from_chest=True)
         for sprite in can_be_picked_up:
             sprite.update()
+        for enemy in enemies:
+            if (abs(player.get_center_coordinates()[1] - enemy.get_center_coordinates()[1]) <= SPRITE_SIZE and
+                    abs(player.get_center_coordinates()[0] - enemy.get_center_coordinates()[0]) <= SPRITE_SIZE and
+                    not enemy.dead):
+                player.do_slash = True
+                auto_slash = True
+            enemy.check()
         player.inventory.draw()
         player.inventory.update()
         pause_button.draw()

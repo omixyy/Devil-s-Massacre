@@ -988,11 +988,18 @@ class ScreenDesigner:
         self.restart_button = Button(pg.transform.scale(self.not_pressed, (200, 100)),
                                      pg.transform.scale(self.pressed, (200, 100)), WIDTH // 2 - 100, HEIGHT // 2 - 39,
                                      select=pg.transform.scale(self.pressed, (200, 100)))
+        self.list_levels_buttons = []
+        for j in range(5):
+            self.list_levels_buttons.append(Button(pg.transform.scale(self.not_pressed, (225, 100)),
+                                                   pg.transform.scale(self.pressed, (225, 100)),
+                                                   WIDTH // 2 - 240 + (j // 3) * 240,
+                                                   HEIGHT // 4 + 70 * (j + 1) - (j // 3) * 211,
+                                                   select=pg.transform.scale(self.pressed, (225, 100))))
         self.death_screen_created = False
         self.finish_screen_created = False
         self.death_text = 'YOU DIED'
         self.current_ind = [0, 1]
-        self.list_levels_buttons = []
+        self.death_screen_created = False
 
     def render_start_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
@@ -1026,10 +1033,15 @@ class ScreenDesigner:
 
     def render_level_window(self) -> None:
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
+        for btn in self.list_levels_buttons:
+            if f'level{self.list_levels_buttons.index(btn) + 1}' in available_levels:
+                btn.draw_changing_pic()
+            else:
+                btn.draw()
+                self.draw_lock(btn.x, btn.y_pos)
+            screen.blit(self.font.render(f'Level {self.list_levels_buttons.index(btn) + 1}',
+                                         1, (0, 0, 0)), (btn.x + 43, btn.y_pos + 21))
         self.draw_title('Choose level', WIDTH // 2, HEIGHT // 4)
-        for j in range(5):
-            self.draw_choose_level_button(j, WIDTH // 2 - 240 + (j // 3) * 240,
-                                          HEIGHT // 4 + 70 * (j + 1) - (j // 3) * 211)
         self.draw_menu_button(WIDTH // 2 - 100, HEIGHT // 4 + 70 * 3 + 80)
 
     def render_death_window(self) -> None:
@@ -1121,6 +1133,10 @@ class ScreenDesigner:
         self.exit_button.draw_changing_pic()
         screen.blit(self.font.render('EXIT', 1, (0, 0, 0)),
                     (x + 65, y + 21))
+
+    def draw_lock(self, x: int, y: int):
+        img = pg.transform.scale(pg.image.load(INTERFACE_DIR + '/lock.png'), (64, 64))
+        screen.blit(img, (x + 80, y + 15))
 
 
 class InputBox:

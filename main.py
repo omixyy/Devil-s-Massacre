@@ -13,7 +13,7 @@ available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
 
-auto = False
+auto = True
 
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
@@ -452,18 +452,18 @@ class Player(MovingObject):
                     if self.current_slash == 0:
                         for e in enemies:
                             if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
-                                1]) <= SPRITE_SIZE // 2 and
+                                1]) <= SPRITE_SIZE and
                                     abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
                                     and 'Thin' in foldername):
                                 if not e.dead:
                                     e.health -= 1
                             elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
-                                1]) <= SPRITE_SIZE // 2 and
+                                1]) <= SPRITE_SIZE and
                                   abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
                                   and 'Wide' in foldername):
                                 e.health -= 2
                             elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
-                                1]) <= SPRITE_SIZE // 2 and
+                                1]) <= SPRITE_SIZE and
                                   abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
                                   'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                                 e.health -= 1
@@ -503,7 +503,7 @@ class Player(MovingObject):
             self.dead = True
             screen.blit(pg.image.load(INTERFACE_DIR + '/UI_Flat_Cross_Large.png'),
                         (self.pos[0] - SPRITE_SIZE // 2, self.pos[1] - SPRITE_SIZE // 2))
-        if self.do_slash:
+        if self.do_slash and auto:
             self.slash('Blue Slash Thin')
 
 
@@ -747,7 +747,7 @@ class Monster(MovingObject, Castle):
         self.go_to_player = False
         self.start_x, _ = self.pos
         self.x, self.y = self.pos
-        self.hit_delay = 1000
+        self.hit_delay = 500
         self.last = 0
         self.collided = False
         self.dead = False
@@ -776,7 +776,7 @@ class Monster(MovingObject, Castle):
         if not player.can_tp and not self.dead:
             self.images = [self.dir + f'/{self.filename}_{j}.png' for j in range(1, 5)]
 
-        if (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
+        if (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE and
                 abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE and
                 not self.dead):
             self.do_slash = True
@@ -1037,7 +1037,7 @@ class ScreenDesigner:
             if f'level{self.list_levels_buttons.index(btn) + 1}' in available_levels:
                 btn.draw_changing_pic()
             else:
-                btn.draw()
+                btn.draw_changing_pic()
                 self.draw_lock(btn.x, btn.y_pos)
             screen.blit(self.font.render(f'Level {self.list_levels_buttons.index(btn) + 1}',
                                          1, (0, 0, 0)), (btn.x + 43, btn.y_pos + 21))
@@ -1362,7 +1362,7 @@ def level_window() -> None:
 
 def settings_window() -> None:
     """
-     Работа экрана настроек
+    Работа экрана настроек
     :returns: None
     """
 
@@ -1456,6 +1456,7 @@ def death_window(lvl: str) -> None:
     Работа экрана смерти
     :returns: None
     """
+
     death_menu = ScreenDesigner()
     surf_alpha = pg.Surface((WIDTH, HEIGHT))
     surf_alpha.set_alpha(1)
@@ -1699,6 +1700,7 @@ def run_level(lvl: str) -> None:
     inv_collide = False
     continued = False
     can_finish = False
+    auto_slash = False
     start = datetime.now()
     while running:
         pressed = pg.key.get_pressed()
@@ -1727,6 +1729,7 @@ def run_level(lvl: str) -> None:
                     finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    auto_slash = False
                     lmb_pressed = True
                     inv_collide = pg.Rect((330 + 33 * player.inventory.current_item + 3 * player.inventory.current_item,
                                            player.inventory.y_pos + 15, 33, 33)).collidepoint(event.pos)
@@ -1782,12 +1785,13 @@ def run_level(lvl: str) -> None:
             enemy.move_to_player()
         castle.render()
         for enemy in enemies:
-            if (abs(player.get_center_coordinates()[1] - enemy.get_center_coordinates()[1]) <= SPRITE_SIZE // 2 and
+            if (abs(player.get_center_coordinates()[1] - enemy.get_center_coordinates()[1]) <= SPRITE_SIZE and
                     abs(player.get_center_coordinates()[0] - enemy.get_center_coordinates()[0]) <= SPRITE_SIZE and
                     not enemy.dead and auto):
                 player.do_slash = True
+                auto_slash = True
             enemy.check()
-        if player.do_slash:
+        if player.do_slash and not auto_slash:
             if slash_name != 'Blue Group Slashes':
                 player.slash(slash_name)
             else:

@@ -12,7 +12,7 @@ available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
 
-auto = False
+auto = True
 
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
@@ -749,7 +749,7 @@ class Monster(MovingObject, Castle):
         self.go_to_player = False
         self.start_x, _ = self.pos
         self.x, self.y = self.pos
-        self.hit_delay = 500
+        self.hit_delay = 500 if not auto else 300
         self.last = 0
         self.collided = False
         self.dead = False
@@ -1081,16 +1081,18 @@ class ScreenDesigner:
     def draw_items(self, x: int, y: int) -> None:
         inv = player.inventory.items_images[1::]
         unique = sum([j != [] for j in inv])
+        counter = -1
         for j in range(len(inv)):
             if not inv[j]:
                 continue
+            counter += 1
             item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
-            amount = len(inv[j])
+            amount = len(inv[counter])
             if amount > 1:
                 font = pg.font.Font(None, 20)
                 rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                 item_image.blit(rendered, (item_image.get_width() - 20, 5))
-            screen.blit(item_image, (x + item_image.get_width() * j + (
+            screen.blit(item_image, (x + item_image.get_width() * counter + (
                 45 if unique == 1 else -45 if unique == 3 else 0), y))
 
     def draw_next_button(self, x: int, y: int) -> None:
@@ -1309,12 +1311,6 @@ def finish_window(play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-                    """# TODO
-                    if level in ['level5']:
-                        n_level = 0
-                        level = list_of_levels[0]
-                        start_window()
-                    else:"""
                     n_level += 1
                     run_level(level)
         window.render_finish_window()

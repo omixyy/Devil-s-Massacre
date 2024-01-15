@@ -965,24 +965,6 @@ class Slider:
         self.update_volume()
 
 
-def draw_items(x: int, y: int) -> None:
-    inv = player.inventory.items_images[1::]
-    unique = sum([j != [] for j in inv])
-    counter = -1
-    for j in range(len(inv)):
-        counter += 1
-        if not inv[j]:
-            continue
-        item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
-        amount = len(inv[j])
-        if amount > 1:
-            font = pg.font.Font(None, 20)
-            rendered = font.render(f'x{amount}', 1, pg.Color('white'))
-            item_image.blit(rendered, (item_image.get_width() - 20, 5))
-        screen.blit(item_image, (x + item_image.get_width() * counter + (
-            45 if unique == 1 else -45 if unique == 3 else 0), y))
-
-
 class ScreenDesigner:
     """
     Класс, реализующий конструктор для создания экранов (старт, выбор уровня, пауза, финиш).
@@ -1161,16 +1143,18 @@ class ScreenDesigner:
     def draw_items(self, x: int, y: int) -> None:
         inv = player.inventory.items_images[1::]
         unique = sum([j != [] for j in inv])
+        counter = -1
         for j in range(len(inv)):
             if not inv[j]:
                 continue
+            counter += 1
             item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
-            amount = len(inv[j])
+            amount = len(inv[counter])
             if amount > 1:
                 font = pg.font.Font(None, 20)
                 rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                 item_image.blit(rendered, (item_image.get_width() - 20, 5))
-            screen.blit(item_image, (x + item_image.get_width() * j + (
+            screen.blit(item_image, (x + item_image.get_width() * counter + (
                 45 if unique == 1 else -45 if unique == 3 else 0), y))
 
     def draw_next_button(self, x: int, y: int) -> None:
@@ -1432,6 +1416,7 @@ def finish_window(play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
+                    all_music.finish_window_music.stop()
                     n_level += 1
                     run_level(level)
         window.render_finish_window()
@@ -1785,7 +1770,6 @@ def fade_screen(end_window: str) -> None:
                 elif end_window == 'menu':
                     animated_sprites.empty()
                     start_menu.render_start_window()
-                    pg.display.flip()
             if end_window == 'level':
                 castle.render()
             for sp in animated_sprites:

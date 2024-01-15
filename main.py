@@ -1821,7 +1821,6 @@ def run_level(lvl: str) -> None:
     inv_collide = False
     continued = False
     can_finish = False
-    auto_slash = False
     start = datetime.now()
     all_music.level_window_music.play(-1)
     while running:

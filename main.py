@@ -6,6 +6,7 @@ import pytmx
 import json
 from datetime import datetime
 from constants import *
+import time
 
 list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
@@ -23,6 +24,8 @@ keys_group = pg.sprite.Group()
 can_be_picked_up = pg.sprite.Group()
 in_chests = pg.sprite.Group()
 enemies = pg.sprite.Group()
+
+music = 1
 
 # Считываем конфиг игрока
 with open('config/cfg.txt', 'r', encoding='utf8') as read_cfg:
@@ -340,6 +343,7 @@ class Chest(AnimatedObject):
             self.do_animation = False
 
     def animate_opening(self) -> None:
+        all_music.chest_opened_music.play()
         self.images = [CHESTS_DIR + f'/chest_open_{j}.png' for j in range(1, 5)]
         self.current_image = 0
         self.image = pg.image.load(self.images[self.current_image])
@@ -463,8 +467,7 @@ class Player(MovingObject):
                                 e.health -= 2
                             elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
                                 1]) <= SPRITE_SIZE and
-                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[
-                                      0]) <= SPRITE_SIZE and
+                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
                                   'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                                 e.health -= 1
                                 self.attack_tick = pg.time.get_ticks()
@@ -483,8 +486,10 @@ class Player(MovingObject):
             items = self.inventory.items_images[self.inventory.current_item]
             if items and 'flasks_4' in items[0]:
                 self.health += 2 if self.health < 5 else 1 if self.health == 4 else 0
+                all_music.use_current_item_music.play()
                 del self.inventory.items_images[self.inventory.current_item][0]
             elif items and 'flasks_2' in items[0] and not self.can_tp:
+                all_music.use_current_item_music.play()
                 del self.inventory.items_images[self.inventory.current_item][0]
                 for e in enemies:
                     e.can_change_pic = True
@@ -550,7 +555,7 @@ class Inventory:
         Добавляет объект в инвентарь
     remove() :
         Удаляет объект из инвентаря
-    spawn_thrown_object() :
+    throw() :
         Создаёт выкинутый объект на карте
     """
 
@@ -826,11 +831,15 @@ class Monster(MovingObject, Castle):
                 screen.blit(pg.transform.flip(image, flip_x=True, flip_y=False),
                             (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
         if self.current_slash == frames - 1:
+            all_music.slash_monster_music.play()
             self.current_slash = -1
             self.do_slash = False
             self.last = pg.time.get_ticks()
 
     def die(self):
+        if not self.dead:
+            time.sleep(0.0001)
+            all_music.death_monster_music.play()
         self.dead = True
         self.images = [self.dir + f'/{self.filename}_dead_{k}.png' for k in range(1, 5)]
 
@@ -887,6 +896,9 @@ class Button:
         self.pressed = False
         self.unpause = True
         self.clicks = 0
+        self.flag = False
+        self.count_selects = 0
+        self.on = False
 
     def draw(self) -> None:
         screen.blit(self.current_image, (self.x, self.y_pos))
@@ -895,10 +907,15 @@ class Button:
         self.rect = self.current_image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y_pos
+        on_bef = self.on
         if self.rect.collidepoint(pg.mouse.get_pos()) and self.select is not None:
+            self.on = True
             self.current_image = self.select.copy()
         else:
+            self.on = False
             self.current_image = self.image.copy()
+        if self.on and not on_bef:
+            all_music.button_press_music.play()
         screen.blit(self.current_image, (self.x, self.y_pos))
 
     def update(self) -> None:
@@ -914,6 +931,51 @@ class Button:
             self.current_image = self.image.copy()
             self.unpause = True
         screen.blit(self.current_image, (self.x, self.y_pos))
+
+
+class Slider:
+    def __init__(self, x, y, w, h):
+        self.circle_x = x + w * music
+        self.sliderRect = pg.Rect(x, y, w, h)
+        self.circle_y = self.sliderRect.h / 2 + self.sliderRect.y
+
+    def draw(self):
+        pg.draw.rect(screen, pg.Color('bisque'), self.sliderRect)
+        pg.draw.circle(screen, pg.Color('bisque'), (self.circle_x, self.circle_y), self.sliderRect.h * 1.5)
+
+    def update_volume(self):
+        global music
+        music = (self.circle_x - self.sliderRect.x) / self.sliderRect.w
+
+    def on_slider(self, x, y):
+        on_x = self.circle_x - self.sliderRect.h * 1.5 - 5 <= x <= self.circle_x + self.sliderRect.h * 1.5 + 5
+        on_y = self.circle_y - self.sliderRect.h * 1.5 - 5 <= y <= self.circle_y + self.sliderRect.h * 1.5 + 5
+        return on_x and on_y
+
+    def handle_event(self, x):
+        if x < self.sliderRect.x:
+            self.circle_x = self.sliderRect.x
+        elif self.sliderRect.x <= x <= self.sliderRect.x + self.sliderRect.w:
+            self.circle_x = x
+        else:
+            self.circle_x = self.sliderRect.x + self.sliderRect.w
+        self.update_volume()
+
+
+def draw_items(x: int, y: int) -> None:
+    inv = player.inventory.items_images[1::]
+    unique = sum([j != [] for j in inv])
+    for j in range(len(inv)):
+        if not inv[j]:
+            continue
+        item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
+        amount = len(inv[j])
+        if amount > 1:
+            font = pg.font.Font(None, 20)
+            rendered = font.render(f'x{amount}', 1, pg.Color('white'))
+            item_image.blit(rendered, (item_image.get_width() - 20, 5))
+        screen.blit(item_image, (x + item_image.get_width() * j + (
+            45 if unique == 1 else -45 if unique == 3 else 0), y))
 
 
 class ScreenDesigner:
@@ -1016,9 +1078,22 @@ class ScreenDesigner:
         self.draw_level_button()
         self.draw_settings_button(WIDTH // 2 - 100, HEIGHT // 2 + 90)
 
-    def render_settings_window(self) -> None:
+    def render_settings_window(self, slider, cross_indexes, boxes_list, box_to_text) -> None:
+        font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 25)
         screen.blit(pg.transform.scale(pg.image.load(INTERFACE_DIR + '/start_screen_3.jpg'), (WIDTH, HEIGHT)), (0, 0))
-        self.draw_back_button(WIDTH // 2 - 100, HEIGHT // 2 + 180)
+        self.draw_back_button(WIDTH // 2 - 100, HEIGHT // 2 + 220)
+        for k in cross_indexes:
+            screen.blit(pg.transform.scale(pg.image.load(
+                INTERFACE_DIR + '/UI_Flat_Cross_Large.png'), (33, 33)), (k[0], k[1]))
+        for box in boxes_list:
+            text = font.render(box_to_text[box], True, pg.Color('bisque'))
+            screen.blit(text, (250, 105 + boxes_list.index(box) * 60))
+            box.draw()
+        txt = font.render("Note: before using new settings, restart the game", True, pg.Color('red'))
+        screen.blit(txt, ((WIDTH - txt.get_width()) // 2, 50))
+        slider.draw()
+        text = font.render("Music", True, pg.Color('bisque'))
+        screen.blit(text, (250, 105 + 7 * 60))
 
     def render_pause_window(self) -> None:
         self.draw_exit_button(WIDTH // 2 - 100, HEIGHT // 2 + 50)
@@ -1081,18 +1156,16 @@ class ScreenDesigner:
     def draw_items(self, x: int, y: int) -> None:
         inv = player.inventory.items_images[1::]
         unique = sum([j != [] for j in inv])
-        counter = -1
         for j in range(len(inv)):
             if not inv[j]:
                 continue
-            counter += 1
             item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
-            amount = len(inv[counter])
+            amount = len(inv[j])
             if amount > 1:
                 font = pg.font.Font(None, 20)
                 rendered = font.render(f'x{amount}', 1, pg.Color('white'))
                 item_image.blit(rendered, (item_image.get_width() - 20, 5))
-            screen.blit(item_image, (x + item_image.get_width() * counter + (
+            screen.blit(item_image, (x + item_image.get_width() * j + (
                 45 if unique == 1 else -45 if unique == 3 else 0), y))
 
     def draw_next_button(self, x: int, y: int) -> None:
@@ -1194,7 +1267,44 @@ class InputBox:
         pg.draw.rect(screen, self.color, self.rect, 2)
 
 
-def move_by_pointer(obj: MovingObject, to_where: tuple[int, int]) -> None:
+def make_music_file(file):
+    return pg.mixer.Sound(f'music/{file}')
+
+
+def make_buffer(array):
+    return pg.mixer.Sound(buffer=array)
+
+
+class Music:
+    def __init__(self):
+        self.slash_player_music = make_music_file('energichnyiy-rezkiy-vzmah-mechom.ogg')
+        self.slash_monster_music = make_music_file('rezkiy-vzmah-mechom.ogg')
+        self.death_monster_music = make_music_file('kriper-smert.ogg')
+        self.use_current_item_music = make_music_file('zvuk-kogda-zakinuli-ryukzak-na-plecho.ogg')
+        self.throw_item_music = make_music_file('shumnyiy-sbros-ryukzaka-s-plecha.ogg')
+        self.door_opened_music = make_music_file('otkryivanie-i-zakryivanie-dverey-sborka-31873.ogg')
+        self.door_opened_music = make_buffer(self.door_opened_music.get_raw()[0:80000])
+        self.chest_opened_music = make_music_file('inecraft_chest_open.ogg')
+        self.finish_window_music = make_music_file('e5d80a096ce432d.mp3')
+        self.death_window_music = make_music_file('1de2d2611347013.mp3')
+        self.button_press_music = make_music_file('kompyuternaya-klaviatura-odinochnoe-najatie-klavish-38325.mp3')
+        self.button_press_music = make_buffer(self.button_press_music.get_raw()[70000:80000])
+        self.level_window_music = make_music_file('silent.wav')  # 'e74ba825d98595d.mp3'
+        self.start_window_music = make_music_file('449359103103a80.mp3')
+        self.list_music = [attr_value for attr_name, attr_value in self.__dict__.items()]
+
+    def change_all_volumes(self):
+        for i in self.list_music:
+            i.set_volume(music)
+
+    def get_variables_list(self):
+        variables_list = []
+        for attr_name, attr_value in self.__dict__.items():
+            variables_list.append(attr_value)
+        return variables_list
+
+
+def move_by_pointer(obj, to_where: tuple[int, int]) -> None:
     """
     Передвигает объект к указанной точке
     :param obj: Передвигаемый объект
@@ -1256,6 +1366,7 @@ def start_window() -> None:
     """
 
     start_menu = ScreenDesigner()  # exit, title, start, level
+    all_music.start_window_music.play(-1)
     if len(animated_sprites) != 0:
         fade_screen('menu')
     while True:
@@ -1265,10 +1376,13 @@ def start_window() -> None:
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if start_menu.start_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     run_level(level)
                 if start_menu.level_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     level_window()
                 if start_menu.settings_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     settings_window()
                 if start_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
@@ -1299,6 +1413,7 @@ def finish_window(play_time: float) -> None:
         level = available_levels[-1]
     except IndexError:
         pass
+    all_music.finish_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1306,6 +1421,7 @@ def finish_window(play_time: float) -> None:
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if window.menu_button.rect.collidepoint(evt.pos):
+                    all_music.finish_window_music.stop()
                     start_window()
                 if window.exit_button.rect.collidepoint(evt.pos):
                     terminate()
@@ -1346,6 +1462,7 @@ def level_window() -> None:
 
     global level, n_level
     window = ScreenDesigner()
+    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1353,11 +1470,13 @@ def level_window() -> None:
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if window.menu_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     start_window()
                 if any([j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons]):
                     n_level = [j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons].index(True)
                     level = list_of_levels[n_level]
                     if level in available_levels:
+                        all_music.start_window_music.stop()
                         run_level(level)
         window.render_level_window()
         pg.display.flip()
@@ -1384,6 +1503,9 @@ def settings_window() -> None:
     for k in range(7):
         boxes_list[k].text = text_names[k]
     window = ScreenDesigner()
+    slider = Slider(400, 530, 200, 10)
+    all_music.start_window_music.play(-1)
+    pressed = False
     while True:
         texts = [k.text for k in boxes_list]
         if all(texts) and not len(set(texts)) < len(texts):
@@ -1402,18 +1524,16 @@ def settings_window() -> None:
                         for ind, t in enumerate(boxes_list):
                             if not t.text or texts.count(t.text) > 1:
                                 cross_indexes.append((600, 100 + ind * 60))
+                pressed = slider.on_slider(*evt.pos)
+            elif evt.type == pg.MOUSEBUTTONUP:
+                pressed = False
+            elif evt.type == pg.MOUSEMOTION:
+                if slider.on_slider(*evt.pos) and pressed:
+                    slider.handle_event(evt.pos[0])
+                    all_music.change_all_volumes()
             for box in boxes_list:
                 box.handle_event(evt)
-        window.render_settings_window()
-        for k in cross_indexes:
-            screen.blit(pg.transform.scale(pg.image.load(
-                INTERFACE_DIR + '/UI_Flat_Cross_Large.png'), (33, 33)), (k[0], k[1]))
-        for box in boxes_list:
-            text = font.render(box_to_text[box], True, pg.Color('bisque'))
-            screen.blit(text, (250, 105 + boxes_list.index(box) * 60))
-            box.draw()
-        txt = font.render("Note: before using new settings, restart the game", True, pg.Color('red'))
-        screen.blit(txt, ((WIDTH - txt.get_width()) // 2, 50))
+        window.render_settings_window(slider, cross_indexes, boxes_list, box_to_text)
         pg.display.flip()
 
 
@@ -1426,26 +1546,32 @@ def pause_window(pause_button: Button) -> None:
 
     pause_menu = ScreenDesigner()
     screen_cpy = screen.copy()
+    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
                 terminate()
                 break
             elif evt.type == pg.KEYDOWN:
+                all_music.start_window_music.stop()
                 if evt.key == pause:
                     pause_button.clicks += 1
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    all_music.start_window_music.stop()
                     pause_button.clicks += 1
                 if pause_menu.menu_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     start_window()
                 if pause_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
                 if pause_menu.settings_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     settings_window()
         pause_button.y_pos = 590
         if pause_button.unpause:
+            all_music.level_window_music.play(-1)
             return
         screen.blit(screen_cpy, (0, 0))
         pause_menu.render_pause_window()
@@ -1469,6 +1595,7 @@ def death_window(lvl: str) -> None:
     screen_cpy = screen.copy()
     text_copy = screen.copy()
     tick = pg.time.get_ticks()
+    all_music.death_window_music.play(-1)
     while True:
         count += 1
         for evt in pg.event.get():
@@ -1477,8 +1604,10 @@ def death_window(lvl: str) -> None:
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if death_menu.start_button.rect.collidepoint(evt.pos):
+                    all_music.death_window_music.stop()
                     run_level(lvl)
                 if death_menu.menu_button.rect.collidepoint(evt.pos):
+                    all_music.death_window_music.stop()
                     start_window()
                 if death_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
@@ -1703,7 +1832,9 @@ def run_level(lvl: str) -> None:
     inv_collide = False
     continued = False
     can_finish = False
+    auto_slash = False
     start = datetime.now()
+    all_music.level_window_music.play(-1)
     while running:
         pressed = pg.key.get_pressed()
         for event in pg.event.get():
@@ -1727,10 +1858,13 @@ def run_level(lvl: str) -> None:
                     pause_button.clicks += 1
                     pause_button.y_pos = 590
                 elif event.key == pg.K_e and can_finish:
+                    all_music.level_window_music.stop()
+                    all_music.door_opened_music.play()
                     finish = datetime.now()
                     finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    auto_slash = False
                     lmb_pressed = True
                     inv_collide = pg.Rect((330 + 33 * player.inventory.current_item + 3 * player.inventory.current_item,
                                            player.inventory.y_pos + 15, 33, 33)).collidepoint(event.pos)
@@ -1813,6 +1947,7 @@ def run_level(lvl: str) -> None:
             player.inventory.throw()
         elif player.inventory.throwing is not None:
             spawn_object(player.inventory.thrown_elem)
+            all_music.throw_item_music.play()
             player.inventory.remove()
         if not throw:
             player.inventory.throwing = None
@@ -1820,13 +1955,19 @@ def run_level(lvl: str) -> None:
             show_exit_text()
         player.update()
         if player.health <= 0:
+            all_music.level_window_music.stop()
             death_window(lvl)
+        for enemy in enemies:
+            enemy.check()
+            enemy.move_to_player()
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:
+            all_music.level_window_music.stop()
             pause_window(pause_button)
             continued = False
         if not pause_button.unpause:
+            all_music.level_window_music.play(-1)
             continued = True
         can_finish = (player.get_center_cell() in [(43, 37), (44, 37), (45, 37), (46, 37),
                                                    (43, 38), (44, 38), (45, 48), (46, 38)] and player.has_key())
@@ -1862,6 +2003,7 @@ castle: Castle
 # ЗАПУСК
 if __name__ == '__main__':
     pg.init()
+    all_music = Music()
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
     screen.fill(pg.Color('black'))

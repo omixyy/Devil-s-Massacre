@@ -13,7 +13,7 @@ available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
 
-auto = True
+auto = False
 
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
@@ -25,7 +25,7 @@ can_be_picked_up = pg.sprite.Group()
 in_chests = pg.sprite.Group()
 enemies = pg.sprite.Group()
 
-music = 1
+music = 0.5
 
 # Считываем конфиг игрока
 with open('config/cfg.txt', 'r', encoding='utf8') as read_cfg:
@@ -449,6 +449,8 @@ class Player(MovingObject):
                 tick = pg.time.get_ticks()
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                 if tick - self.slash_tick >= slash_delay:
+                    if 'Group' in foldername and self.current_slash in [2, 5, 7, 10, 12, 15, 17]:
+                        all_music.slash_player_music.play()
                     self.current_slash = (self.current_slash + 1) % frames
                     image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                     self.slash_tick = pg.time.get_ticks()
@@ -467,8 +469,8 @@ class Player(MovingObject):
                                 e.health -= 2
                             elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
                                 1]) <= SPRITE_SIZE and
-                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE and
-                                  'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
+                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                                  and 'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                                 e.health -= 1
                                 self.attack_tick = pg.time.get_ticks()
                 if not self.flip:
@@ -478,6 +480,7 @@ class Player(MovingObject):
                                 (self.pos[0] - SPRITE_SIZE, self.pos[1] - 10))
             if (self.current_slash + 1) % 4 == 0:
                 if 'Group' not in foldername or self.current_slash == 19:
+                    all_music.slash_player_music.play()
                     self.current_slash = -1
                     self.do_slash = False
 
@@ -965,7 +968,9 @@ class Slider:
 def draw_items(x: int, y: int) -> None:
     inv = player.inventory.items_images[1::]
     unique = sum([j != [] for j in inv])
+    counter = -1
     for j in range(len(inv)):
+        counter += 1
         if not inv[j]:
             continue
         item_image = pg.transform.scale(pg.image.load(inv[j][0]), (90, 90))
@@ -974,7 +979,7 @@ def draw_items(x: int, y: int) -> None:
             font = pg.font.Font(None, 20)
             rendered = font.render(f'x{amount}', 1, pg.Color('white'))
             item_image.blit(rendered, (item_image.get_width() - 20, 5))
-        screen.blit(item_image, (x + item_image.get_width() * j + (
+        screen.blit(item_image, (x + item_image.get_width() * counter + (
             45 if unique == 1 else -45 if unique == 3 else 0), y))
 
 
@@ -1916,8 +1921,6 @@ def run_level(lvl: str) -> None:
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
-        for enemy in enemies:
-            enemy.move_to_player()
         castle.render()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':

@@ -1,5 +1,4 @@
 import random
-
 import pygame as pg
 from random import choice
 import sys
@@ -8,8 +7,6 @@ import json
 from datetime import datetime
 from constants import *
 import time
-import os
-
 
 list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
 available_levels = ['level1']
@@ -26,7 +23,7 @@ can_be_picked_up = pg.sprite.Group()
 in_chests = pg.sprite.Group()
 enemies = pg.sprite.Group()
 
-music = 100
+music = 1
 
 # Считываем конфиг игрока
 with open('config/cfg.txt', 'r', encoding='utf8') as read_cfg:
@@ -481,11 +478,11 @@ class Player(MovingObject):
         if not self.dead:
             items = self.inventory.items_images[self.inventory.current_item]
             if items and 'flasks_4' in items[0]:
-                # :TODO: Добавить на синее зелье звук
                 all_music.use_current_item_music.play()
                 self.health += 1 if self.health < 5 else 0
                 del self.inventory.items_images[self.inventory.current_item][0]
             elif items and 'flasks_2' in items[0]:
+                all_music.use_current_item_music.play()
                 del self.inventory.items_images[self.inventory.current_item][0]
                 for e in enemies:
                     e.can_change_pic = True
@@ -913,53 +910,34 @@ class Button:
         screen.blit(self.current_image, (self.x, self.y_pos))
 
 
-def get_volume():
-    return music
-
-
 class Slider:
     def __init__(self, x, y, w, h):
-        self.circle_x = x
+        self.circle_x = x + w * music
         self.sliderRect = pg.Rect(x, y, w, h)
+        self.circle_y = self.sliderRect.h / 2 + self.sliderRect.y
 
     def draw(self):
         pg.draw.rect(screen, pg.Color('bisque'), self.sliderRect)
-        pg.draw.circle(screen, pg.Color('bisque'),
-                       (self.circle_x + self.sliderRect.w, (self.sliderRect.h / 2 + self.sliderRect.y)),
-                       self.sliderRect.h * 1.5)
+        pg.draw.circle(screen, pg.Color('bisque'), (self.circle_x, self.circle_y), self.sliderRect.h * 1.5)
 
-    def update_volume(self, x):
+    def update_volume(self):
         global music
-        if x < self.sliderRect.x:
-            music = 0
-        elif x > self.sliderRect.x + self.sliderRect.w:
-            music = 100
-        else:
-            music = int((x - self.sliderRect.x) / float(self.sliderRect.w) * 100)
+        music = (self.circle_x - self.sliderRect.x) / self.sliderRect.w
 
     def on_slider(self, x, y):
-        if self.on_slider_hold(x, y) or self.sliderRect.x <= x <= self.sliderRect.x + self.sliderRect.w and self.sliderRect.y <= y <= self.sliderRect.y + self.sliderRect.h:
-            return True
-        else:
-            return False
-
-    def on_slider_hold(self, x, y):
-        if ((x - self.circle_x) * (x - self.circle_x) + (y - (self.sliderRect.y + self.sliderRect.h / 2)) * (
-                y - (self.sliderRect.y + self.sliderRect.h / 2))) \
-                <= (self.sliderRect.h * 1.5) * (self.sliderRect.h * 1.5):
-            return True
-        else:
-            return False
+        on_x = self.circle_x - self.sliderRect.h * 1.5 - 5 <= x <= self.circle_x + self.sliderRect.h * 1.5 + 5
+        on_y = self.circle_y - self.sliderRect.h * 1.5 - 5 <= y <= self.circle_y + self.sliderRect.h * 1.5 + 5
+        return on_x and on_y
 
     def handle_event(self, x):
         if x < self.sliderRect.x:
-            self.circle_x = self.sliderRect.x - self.sliderRect.w
-        elif x > self.sliderRect.x + self.sliderRect.w:
             self.circle_x = self.sliderRect.x
+        elif self.sliderRect.x <= x <= self.sliderRect.x + self.sliderRect.w:
+            self.circle_x = x
         else:
-            self.circle_x = x - self.sliderRect.w
-        self.draw()
-        self.update_volume(x)
+            self.circle_x = self.sliderRect.x + self.sliderRect.w
+        self.update_volume()
+
 
 def draw_items(x: int, y: int) -> None:
     inv = player.inventory.items_images[1::]
@@ -1263,10 +1241,10 @@ class Music:
         self.level_window_music = make_music_file('silent.wav')  # 'e74ba825d98595d.mp3'
         self.start_window_music = make_music_file('449359103103a80.mp3')
         self.list_music = [attr_value for attr_name, attr_value in self.__dict__.items()]
-    def change_all_volumes(self, volume):
+
+    def change_all_volumes(self):
         for i in self.list_music:
-            print(i, volume)
-            i.set_volume(volume / 100)
+            i.set_volume(music)
 
     def get_variables_list(self):
         variables_list = []
@@ -1345,12 +1323,14 @@ def start_window() -> None:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
-                all_music.start_window_music.stop()
                 if start_menu.start_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     run_level(level)
                 if start_menu.level_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     level_window()
                 if start_menu.settings_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     settings_window()
                 if start_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
@@ -1388,15 +1368,14 @@ def finish_window(play_time: float) -> None:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
-                all_music.finish_window_music.stop()
                 if window.menu_button.rect.collidepoint(evt.pos):
+                    all_music.finish_window_music.stop()
                     start_window()
                 if window.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
-
-                    # TODO
+                    all_music.finish_window_music.stop()
                     if level in ['level5']:
                         n_level = 0
                         level = list_of_levels[0]
@@ -1444,8 +1423,8 @@ def level_window() -> None:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
-                all_music.start_window_music.stop()
                 if window.menu_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     start_window()
                 if any([j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons]):
                     n_level = [j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons].index(True)
@@ -1479,6 +1458,7 @@ def settings_window() -> None:
     window = ScreenDesigner()
     slider = Slider(400, 530, 200, 10)
     all_music.start_window_music.play(-1)
+    pressed = False
     while True:
         texts = [k.text for k in boxes_list]
         if all(texts) and not len(set(texts)) < len(texts):
@@ -1497,11 +1477,13 @@ def settings_window() -> None:
                         for ind, t in enumerate(boxes_list):
                             if not t.text or texts.count(t.text) > 1:
                                 cross_indexes.append((600, 100 + ind * 60))
-
+                pressed = slider.on_slider(*evt.pos)
+            elif evt.type == pg.MOUSEBUTTONUP:
+                pressed = False
             elif evt.type == pg.MOUSEMOTION:
-                if slider.on_slider(*evt.pos):
+                if slider.on_slider(*evt.pos) and pressed:
                     slider.handle_event(evt.pos[0])
-                    all_music.change_all_volumes(get_volume())
+                    all_music.change_all_volumes()
             for box in boxes_list:
                 box.handle_event(evt)
         window.render_settings_window(slider, cross_indexes, boxes_list, box_to_text)
@@ -1528,15 +1510,17 @@ def pause_window(pause_button: Button) -> None:
                 if evt.key == pause:
                     pause_button.clicks += 1
             elif evt.type == pg.MOUSEBUTTONDOWN:
-                all_music.start_window_music.stop()
                 if pause_button.rect.collidepoint(evt.pos) and evt.button == 1:
+                    all_music.start_window_music.stop()
                     pause_button.clicks += 1
                 if pause_menu.menu_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     start_window()
                 if pause_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
                 if pause_menu.settings_button.rect.collidepoint(evt.pos):
+                    all_music.start_window_music.stop()
                     settings_window()
         pause_button.y_pos = 590
         if pause_button.unpause:
@@ -1571,10 +1555,11 @@ def death_window(lvl: str) -> None:
                 terminate()
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
-                all_music.death_window_music.stop()
                 if death_menu.start_button.rect.collidepoint(evt.pos):
+                    all_music.death_window_music.stop()
                     run_level(lvl)
                 if death_menu.menu_button.rect.collidepoint(evt.pos):
+                    all_music.death_window_music.stop()
                     start_window()
                 if death_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()

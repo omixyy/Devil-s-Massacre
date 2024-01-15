@@ -12,7 +12,7 @@ available_levels = ['level1']
 n_level = 0
 level = list_of_levels[n_level]
 
-auto = True
+auto = False
 
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
@@ -482,9 +482,9 @@ class Player(MovingObject):
         if not self.dead:
             items = self.inventory.items_images[self.inventory.current_item]
             if items and 'flasks_4' in items[0]:
-                self.health += 1 if self.health < 5 else 0
+                self.health += 2 if self.health < 5 else 1 if self.health == 4 else 0
                 del self.inventory.items_images[self.inventory.current_item][0]
-            elif items and 'flasks_2' in items[0]:
+            elif items and 'flasks_2' in items[0] and not self.can_tp:
                 del self.inventory.items_images[self.inventory.current_item][0]
                 for e in enemies:
                     e.can_change_pic = True
@@ -563,6 +563,8 @@ class Inventory:
         self.throwing = None
         self.thrown_elem = None
         self.current_item = 0
+        self.delta = 100
+        self.tick_now = pg.time.get_ticks()
 
     def draw(self) -> None:
         screen.blit(self.image, (315, self.y_pos))
@@ -816,7 +818,7 @@ class Monster(MovingObject, Castle):
                 self.current_slash = (self.current_slash + 1) % frames
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                 self.slash_tick = pg.time.get_ticks()
-                if self.current_slash == frames - 4:
+                if self.current_slash == frames - 2:
                     player.health -= 1
             if not self.flip:
                 screen.blit(image, (self.pos[0], self.pos[1] - 10))
@@ -1705,7 +1707,6 @@ def run_level(lvl: str) -> None:
     inv_collide = False
     continued = False
     can_finish = False
-    auto_slash = False
     start = datetime.now()
     while running:
         pressed = pg.key.get_pressed()
@@ -1734,7 +1735,6 @@ def run_level(lvl: str) -> None:
                     finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    auto_slash = False
                     lmb_pressed = True
                     inv_collide = pg.Rect((330 + 33 * player.inventory.current_item + 3 * player.inventory.current_item,
                                            player.inventory.y_pos + 15, 33, 33)).collidepoint(event.pos)
@@ -1749,10 +1749,10 @@ def run_level(lvl: str) -> None:
                           not player.do_slash and player.inventory.current_item == 0):
                         player.do_slash = True
                         slash_name = 'Blue Slash Thin'
-                    elif shift_pressed and not player.do_slash and player.inventory.current_item == 0:
+                    elif shift_pressed and not player.do_slash and player.inventory.current_item == 0 and not auto:
                         player.do_slash = True
                         slash_name = 'Blue Slash Wide'
-                    elif ctrl_pressed and not player.do_slash and player.inventory.current_item == 0:
+                    elif ctrl_pressed and not player.do_slash and player.inventory.current_item == 0 and not auto:
                         player.do_slash = True
                         slash_name = 'Blue Group Slashes'
                     elif player.inventory.current_item != 0:
@@ -1789,7 +1789,7 @@ def run_level(lvl: str) -> None:
         for enemy in enemies:
             enemy.move_to_player()
         castle.render()
-        if player.do_slash and not auto_slash:
+        if player.do_slash:
             if slash_name != 'Blue Group Slashes':
                 player.slash(slash_name)
             else:
@@ -1806,9 +1806,8 @@ def run_level(lvl: str) -> None:
         for enemy in enemies:
             if (abs(player.get_center_coordinates()[1] - enemy.get_center_coordinates()[1]) <= SPRITE_SIZE and
                     abs(player.get_center_coordinates()[0] - enemy.get_center_coordinates()[0]) <= SPRITE_SIZE and
-                    not enemy.dead):
+                    not enemy.dead and auto):
                 player.do_slash = True
-                auto_slash = True
             enemy.check()
         player.inventory.draw()
         player.inventory.update()

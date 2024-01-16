@@ -15,6 +15,9 @@ level = list_of_levels[n_level]
 
 auto = False
 
+count_killed = 0
+count_collected = 0
+
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
 animated_sprites = pg.sprite.Group()
@@ -769,6 +772,8 @@ class Monster(MovingObject, Castle):
                              abs(player.pos[1] - self.pos[1]) <= self.view_radius)
 
         if self.health <= 0:
+            global count_killed
+            count_killed += 1
             self.die()
 
         if self.can_change_pic and player.can_tp:
@@ -1429,7 +1434,8 @@ def finish_window(play_time: float) -> None:
             window.current_ind[1] += 1
             tick = pg.time.get_ticks()
             window.draw_title(f'Level complete!'[window.current_ind[0]:window.current_ind[1]], WIDTH // 2, HEIGHT // 4)
-            window.draw_title(f'Play time: {play_time}'[window.current_ind[0]:window.current_ind[1]],
+            window.draw_title(f'Score: {score_formula(count_killed, play_time, count_collected)}'
+                              [window.current_ind[0]:window.current_ind[1]],
                               WIDTH // 2, HEIGHT // 4 + 50)
             text_copy = screen.copy()
             text_copy_created = True
@@ -1442,6 +1448,10 @@ def finish_window(play_time: float) -> None:
             surf_alpha.set_alpha(alpha)
         screen.blit(screen_cpy, (0, 0))
         screen.blit(surf_alpha, (0, 0))
+
+
+def score_formula(killed: int, playtime: float, collected: int) -> float:
+    return killed * collected / collected
 
 
 def level_window() -> None:
@@ -1852,7 +1862,6 @@ def run_level(lvl: str) -> None:
                     finish_window(round((finish - start).total_seconds(), 3))
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    auto_slash = False
                     lmb_pressed = True
                     inv_collide = pg.Rect((330 + 33 * player.inventory.current_item + 3 * player.inventory.current_item,
                                            player.inventory.y_pos + 15, 33, 33)).collidepoint(event.pos)

@@ -1,1 +1,1 @@
-K_w, K_s, K_a, K_d, K_LSHIFT, K_LCTRL, K_ESCAPE, 0.8
+K_w, K_s, K_a, K_d, K_LSHIFT, K_LCTRL, K_ESCAPE, 0.1

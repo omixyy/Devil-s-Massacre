@@ -14,9 +14,8 @@ n_level = 0
 level = list_of_levels[n_level]
 
 auto = False
-
 count_killed = 0
-count_collected = 0
+hp_lost = 0
 
 chests = pg.sprite.Group()
 coins = pg.sprite.Group()
@@ -30,7 +29,6 @@ enemies = pg.sprite.Group()
 
 # Считываем конфиг игрока
 with open('config/cfg.txt', 'r', encoding='utf8') as read_cfg:
-    global music
     reader = read_cfg.read().split(', ')
     reader, music = reader[:-1:], float(reader[-1])
     text_names = list()
@@ -442,11 +440,11 @@ class Player(MovingObject):
         if not self.dead:
             slash_delay = self.animation_delay
             if 'Group' in foldername:
-                slash_delay = 110
+                slash_delay = 90
             elif 'Thin' in foldername:
                 slash_delay = 50
             elif 'Wide' in foldername:
-                slash_delay = 80
+                slash_delay = 70
             if self.do_slash:
                 images = [SLASH_DIR + '/' + foldername + f'/File{j}.png' for j in range(1, frames + 1)]
                 tick = pg.time.get_ticks()
@@ -457,8 +455,8 @@ class Player(MovingObject):
                     self.current_slash = (self.current_slash + 1) % frames
                     image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                     self.slash_tick = pg.time.get_ticks()
-                    if self.current_slash == 0:
-                        for e in enemies:
+                    for e in enemies:
+                        if self.current_slash == 0:
                             if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
                                 1]) <= SPRITE_SIZE and
                                     abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
@@ -470,12 +468,14 @@ class Player(MovingObject):
                                   abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
                                   and 'Wide' in foldername):
                                 e.health -= 2
-                            elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
-                                1]) <= SPRITE_SIZE and
-                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
-                                  and 'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
-                                e.health -= 1
-                                self.attack_tick = pg.time.get_ticks()
+                        elif (abs(self.get_center_coordinates()[1]
+                                  - e.get_center_coordinates()[1]) <= SPRITE_SIZE
+                              and abs(self.get_center_coordinates()[0]
+                                      - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                              and 'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
+                            e.health -= 1
+                            e.hit_delay = 700
+                            self.attack_tick = pg.time.get_ticks()
                 if not self.flip:
                     screen.blit(image, (self.pos[0], self.pos[1] - 10))
                 else:
@@ -772,8 +772,6 @@ class Monster(MovingObject, Castle):
                              abs(player.pos[1] - self.pos[1]) <= self.view_radius)
 
         if self.health <= 0:
-            global count_killed
-            count_killed += 1
             self.die()
 
         if self.can_change_pic and player.can_tp:
@@ -832,7 +830,9 @@ class Monster(MovingObject, Castle):
                 image = pg.transform.scale(pg.image.load(images[self.current_slash]), (32, 32))
                 self.slash_tick = pg.time.get_ticks()
                 if self.current_slash == frames - 2:
+                    global hp_lost
                     player.health -= 1
+                    hp_lost += 1
             if not self.flip:
                 screen.blit(image, (self.pos[0], self.pos[1] - 10))
             else:
@@ -847,6 +847,8 @@ class Monster(MovingObject, Castle):
     def die(self):
         if not self.dead:
             time.sleep(0.0001)
+            global count_killed
+            count_killed += 1
             all_music.death_monster_music.play()
         self.dead = True
         self.images = [self.dir + f'/{self.filename}_dead_{k}.png' for k in range(1, 5)]
@@ -1392,7 +1394,7 @@ def finish_window(play_time: float) -> None:
     :returns: None
     """
 
-    global level, available_levels, n_level
+    global level, available_levels, n_level, hp_lost
     window = ScreenDesigner()
     text_copy_created = False
     screen_cpy = screen.copy()
@@ -1433,8 +1435,15 @@ def finish_window(play_time: float) -> None:
         elif pg.time.get_ticks() - tick >= 50 and copy_created:
             window.current_ind[1] += 1
             tick = pg.time.get_ticks()
+            count_collected = 0
+            count_coins = 0
+            for item in player.inventory.items_images[1::]:
+                count_collected += len(item)
+                for j in item:
+                    if 'coin' in j:
+                        count_coins += 1
             window.draw_title(f'Level complete!'[window.current_ind[0]:window.current_ind[1]], WIDTH // 2, HEIGHT // 4)
-            window.draw_title(f'Score: {score_formula(count_killed, play_time, count_collected)}'
+            window.draw_title(f'Score: {score_formula(count_killed, count_coins, hp_lost, play_time, count_collected)}'
                               [window.current_ind[0]:window.current_ind[1]],
                               WIDTH // 2, HEIGHT // 4 + 50)
             text_copy = screen.copy()
@@ -1450,8 +1459,18 @@ def finish_window(play_time: float) -> None:
         screen.blit(surf_alpha, (0, 0))
 
 
-def score_formula(killed: int, playtime: float, collected: int) -> float:
-    return killed * collected / playtime
+def score_formula(killed: int, count_coins: int, lost: int,  playtime: float, collected: int) -> float:
+    """
+    Подсчитывает очки игрока после раунда
+    :param killed: Количество убитых врагов
+    :param playtime: Время прохождения уровня
+    :param collected: Количество собранных предметов
+    :param count_coins: Количество собранных монет
+    :param lost: Количество потерянного здоровья
+    :returns: Количество очков
+    """
+
+    return round((killed * collected + count_coins ** 2) / (playtime + lost), 2)
 
 
 def level_window() -> None:
@@ -1914,7 +1933,11 @@ def run_level(lvl: str) -> None:
         if player.collide_vertex == move_to_cell:
             pointed = False
             kill_arrow()
+        for enemy in enemies:
+            enemy.check()
         castle.render()
+        for enemy in enemies:
+            enemy.move_to_player()
         if player.do_slash:
             if slash_name != 'Blue Group Slashes':
                 player.slash(slash_name)
@@ -1953,9 +1976,6 @@ def run_level(lvl: str) -> None:
         if player.health <= 0:
             all_music.level_window_music.stop()
             death_window(lvl)
-        for enemy in enemies:
-            enemy.check()
-            enemy.move_to_player()
         pg.display.flip()
         clock.tick(FPS)
         if continued and not pause_button.unpause:

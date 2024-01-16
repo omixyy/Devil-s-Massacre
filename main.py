@@ -1271,14 +1271,6 @@ class InputBox:
         pg.draw.rect(screen, self.color, self.rect, 2)
 
 
-def make_music_file(file):
-    return pg.mixer.Sound(f'music/{file}')
-
-
-def make_buffer(array):
-    return pg.mixer.Sound(buffer=array)
-
-
 class Music:
     def __init__(self):
         self.slash_player_music = make_music_file('energichnyiy-rezkiy-vzmah-mechom.ogg')
@@ -1300,14 +1292,22 @@ class Music:
         self.list_music = [attr_value for attr_name, attr_value in self.__dict__.items()]
 
     def change_all_volumes(self):
-        for i in self.list_music:
-            i.set_volume(music)
+        for j in self.list_music:
+            j.set_volume(music)
 
     def get_variables_list(self):
         variables_list = []
         for attr_name, attr_value in self.__dict__.items():
             variables_list.append(attr_value)
         return variables_list
+
+
+def make_music_file(file):
+    return pg.mixer.Sound(f'music/{file}')
+
+
+def make_buffer(array):
+    return pg.mixer.Sound(buffer=array)
 
 
 def move_by_pointer(obj, to_where: tuple[int, int]) -> None:
@@ -1613,6 +1613,7 @@ def pause_window(pause_button: Button) -> None:
 def death_window(lvl: str) -> None:
     """
     Работа экрана смерти
+    :param lvl: Следующий уровень
     :returns: None
     """
 
@@ -1740,7 +1741,7 @@ def animate_buttons(buttons: list[Button]):
     """
     Уменьшает координату по оси y для кнопок в списке buttons.
     :param buttons: Список кнопок, для которых нужно уменьшать координату
-    :return:
+    :returns: None
     """
 
     for button in buttons:

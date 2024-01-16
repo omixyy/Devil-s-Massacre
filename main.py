@@ -606,10 +606,18 @@ class Inventory:
             for cell in range(len(self.items_images)):
                 file = direct + '/' + obj.filename + '_1.png'
                 if not self.items_images[cell] and not any([file in j for j in self.items_images]):
+                    if 'coin' in obj.filename:
+                        all_music.pickup_coin_music.play()
+                    else:
+                        all_music.pickup_other_music.play()
                     self.items_images[cell].append(file)
                     break
                 elif self.items_images[cell] and self.items_images[cell][0] == file and len(
                         self.items_images[cell]) < 4:
+                    if 'coin' in obj.filename:
+                        all_music.pickup_coin_music.play()
+                    else:
+                        all_music.pickup_other_music.play()
                     self.items_images[cell].append(file)
             for j in can_be_picked_up:
                 if j is obj:
@@ -1287,6 +1295,8 @@ class Music:
         self.button_press_music = make_buffer(self.button_press_music.get_raw()[70000:80000])
         self.level_window_music = make_music_file('silent.wav')  # 'e74ba825d98595d.mp3'
         self.start_window_music = make_music_file('449359103103a80.mp3')
+        self.pickup_coin_music = make_music_file('d212724b45e541e.mp3')
+        self.pickup_other_music = make_music_file('11986c2f439eb45.mp3')
         self.list_music = [attr_value for attr_name, attr_value in self.__dict__.items()]
 
     def change_all_volumes(self):

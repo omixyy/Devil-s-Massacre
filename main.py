@@ -25,11 +25,11 @@ can_be_picked_up = pg.sprite.Group()
 in_chests = pg.sprite.Group()
 enemies = pg.sprite.Group()
 
-music = 0.5
-
 # Считываем конфиг игрока
 with open('config/cfg.txt', 'r', encoding='utf8') as read_cfg:
+    global music
     reader = read_cfg.read().split(', ')
+    reader, music = reader[:-1:], float(reader[-1])
     text_names = list()
     config = list()
     for i in reader:
@@ -1432,6 +1432,7 @@ def finish_window(play_time: float) -> None:
                     terminate()
                     break
                 if window.next_button.rect.collidepoint(evt.pos):
+                    all_music.finish_window_music.stop()
                     n_level += 1
                     run_level(level)
         window.render_finish_window()
@@ -1523,7 +1524,8 @@ def settings_window() -> None:
                 if window.back_button.rect.collidepoint(evt.pos):
                     if all(texts) and not len(set(texts)) < len(texts):
                         with open('config/cfg.txt', 'w', encoding='utf8') as save_cfg:
-                            save_cfg.write(', '.join([field.text for field in boxes_list]))
+                            out = ', '.join([field.text for field in boxes_list]) + ', ' + str(music)
+                            save_cfg.write(out)
                         return
                     else:
                         for ind, t in enumerate(boxes_list):
@@ -2007,6 +2009,7 @@ castle: Castle
 if __name__ == '__main__':
     pg.init()
     all_music = Music()
+    all_music.change_all_volumes()
     pg.display.set_caption("Devil's Massacre")
     screen = pg.display.set_mode((WIDTH := 800, HEIGHT := 640))
     screen.fill(pg.Color('black'))

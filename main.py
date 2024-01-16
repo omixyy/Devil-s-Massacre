@@ -1451,7 +1451,7 @@ def finish_window(play_time: float) -> None:
 
 
 def score_formula(killed: int, playtime: float, collected: int) -> float:
-    return killed * collected / collected
+    return killed * collected / playtime
 
 
 def level_window() -> None:

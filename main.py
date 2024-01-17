@@ -6,7 +6,6 @@ import pytmx
 import json
 from datetime import datetime
 from constants import *
-import time
 
 list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
 
@@ -777,6 +776,7 @@ class Monster(MovingObject, Castle):
         self.can_change_pic = False
 
     def check(self):
+        print(self.health)
         self.rect.topleft = self.x, self.y
         self.go_to_player = (abs(player.pos[0] - self.pos[0]) <= self.view_radius and
                              abs(player.pos[1] - self.pos[1]) <= self.view_radius)
@@ -856,7 +856,6 @@ class Monster(MovingObject, Castle):
 
     def die(self):
         if not self.dead:
-            time.sleep(0.0001)
             global count_killed
             count_killed += 1
             all_music.death_monster_music.play()

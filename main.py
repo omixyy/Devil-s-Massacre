@@ -1530,7 +1530,6 @@ def settings_window() -> None:
         boxes_list[6]: 'Pause'
     }
     cross_indexes = list()
-    font = pg.font.Font(INTERFACE_DIR + '/EpilepsySans.ttf', 25)
     for k in range(7):
         boxes_list[k].text = text_names[k]
     window = ScreenDesigner()

@@ -460,19 +460,19 @@ class Player(MovingObject):
                         if self.current_slash == 0:
                             if (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
                                 1]) <= SPRITE_SIZE and
-                                    abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
-                                    and 'Thin' in foldername):
+                                    abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0])
+                                    <= SPRITE_SIZE + 4 and 'Thin' in foldername):
                                 if not e.dead:
                                     e.health -= 1
                             elif (abs(self.get_center_coordinates()[1] - e.get_center_coordinates()[
-                                1]) <= SPRITE_SIZE and
-                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0]) <= SPRITE_SIZE
-                                  and 'Wide' in foldername):
+                                1]) <= SPRITE_SIZE + 4 and
+                                  abs(self.get_center_coordinates()[0] - e.get_center_coordinates()[0])
+                                  <= SPRITE_SIZE + 4 and 'Wide' in foldername):
                                 e.health -= 2
                         elif (abs(self.get_center_coordinates()[1]
-                                  - e.get_center_coordinates()[1]) <= SPRITE_SIZE
+                                  - e.get_center_coordinates()[1]) <= SPRITE_SIZE + 4
                               and abs(self.get_center_coordinates()[0]
-                                      - e.get_center_coordinates()[0]) <= SPRITE_SIZE
+                                      - e.get_center_coordinates()[0]) <= SPRITE_SIZE + 4
                               and 'Group' in foldername) and pg.time.get_ticks() - self.attack_tick >= 300:
                             e.health -= 1
                             e.hit_delay = 700
@@ -776,7 +776,6 @@ class Monster(MovingObject, Castle):
         self.can_change_pic = False
 
     def check(self):
-        print(self.health)
         self.rect.topleft = self.x, self.y
         self.go_to_player = (abs(player.pos[0] - self.pos[0]) <= self.view_radius and
                              abs(player.pos[1] - self.pos[1]) <= self.view_radius)
@@ -784,7 +783,7 @@ class Monster(MovingObject, Castle):
         if self.health <= 0:
             self.die()
 
-        if self.can_change_pic and player.can_tp:
+        if self.can_change_pic and player.can_tp and not self.dead:
             mx, my = pg.mouse.get_pos()
             pressed = pg.mouse.get_pressed()
             if pg.Rect((self.rect[0] - 8, self.rect[1] - 8, 2 * SPRITE_SIZE, 2 * SPRITE_SIZE)).collidepoint((mx, my)):
@@ -799,8 +798,8 @@ class Monster(MovingObject, Castle):
         if not player.can_tp and not self.dead:
             self.images = [self.dir + f'/{self.filename}_{j}.png' for j in range(1, 5)]
 
-        if (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE and
-                abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE and
+        if (abs(self.get_center_coordinates()[1] - player.get_center_coordinates()[1]) <= SPRITE_SIZE + 4 and
+                abs(self.get_center_coordinates()[0] - player.get_center_coordinates()[0]) <= SPRITE_SIZE + 4 and
                 not self.dead):
             self.do_slash = True
             self.hit('Red Slash Thin')

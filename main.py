@@ -1372,7 +1372,6 @@ def start_window() -> None:
     """
 
     start_menu = ScreenDesigner()  # exit, title, start, level
-    all_music.start_window_music.play(-1)
     if len(animated_sprites) != 0:
         fade_screen('menu')
     while True:
@@ -1385,10 +1384,8 @@ def start_window() -> None:
                     all_music.start_window_music.stop()
                     run_level(level)
                 if start_menu.level_button.rect.collidepoint(evt.pos):
-                    all_music.start_window_music.stop()
                     level_window()
                 if start_menu.settings_button.rect.collidepoint(evt.pos):
-                    all_music.start_window_music.stop()
                     settings_window()
                 if start_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
@@ -1435,7 +1432,10 @@ def finish_window(play_time: float) -> None:
                 if window.next_button.rect.collidepoint(evt.pos):
                     all_music.finish_window_music.stop()
                     n_level += 1
-                    run_level(level)
+                    if n_level == 5:
+                        start_window()
+                    else:
+                        run_level(level)
         window.render_finish_window()
         if not copy_created:
             screen_cpy = screen.copy()
@@ -1480,7 +1480,7 @@ def score_formula(killed: int, count_coins: int, lost: int,  playtime: float, co
     :returns: Количество очков
     """
 
-    return round((killed * collected + count_coins ** 2) / (playtime + lost), 2)
+    return round((killed * collected + count_coins ** 2) / (playtime + lost) * 100, 2)
 
 
 def level_window() -> None:
@@ -1491,7 +1491,6 @@ def level_window() -> None:
 
     global level, n_level
     window = ScreenDesigner()
-    all_music.start_window_music.play(-1)
     while True:
         for evt in pg.event.get():
             if evt.type == pg.QUIT:
@@ -1499,7 +1498,6 @@ def level_window() -> None:
                 break
             elif evt.type == pg.MOUSEBUTTONDOWN:
                 if window.menu_button.rect.collidepoint(evt.pos):
-                    all_music.start_window_music.stop()
                     start_window()
                 if any([j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons]):
                     n_level = [j.rect.collidepoint(evt.pos) for j in window.list_levels_buttons].index(True)
@@ -1532,7 +1530,6 @@ def settings_window() -> None:
         boxes_list[k].text = text_names[k]
     window = ScreenDesigner()
     slider = Slider(400, 530, 200, 10)
-    all_music.start_window_music.play(-1)
     pressed = False
     while True:
         texts = [k.text for k in boxes_list]
@@ -2040,4 +2037,5 @@ if __name__ == '__main__':
     lower_rect = pg.Rect(0, 590, 800, 50)
     inventory_rect = pg.Rect(315, 590, 170, 50)
     clock = pg.time.Clock()
+    all_music.start_window_music.play(-1)
     start_window()

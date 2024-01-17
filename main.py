@@ -9,7 +9,9 @@ from constants import *
 import time
 
 list_of_levels = ['level1', 'level2', 'level3', 'level4', 'level5']
-available_levels = ['level1']
+
+with open('levels/available_levels.txt') as f:
+    available_levels = f.read().split(', ')
 n_level = 0
 level = list_of_levels[n_level]
 
@@ -2018,6 +2020,9 @@ def terminate() -> None:
     :returns: None
     """
 
+    with open('levels/available_levels.txt', 'w', encoding='utf8') as fl:
+        line = ', '.join(list(set(available_levels)))
+        fl.write(line)
     pg.quit()
     sys.exit()
 

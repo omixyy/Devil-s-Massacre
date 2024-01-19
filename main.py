@@ -140,6 +140,10 @@ class MovingObject(AnimatedObject):
         Показывает направление движения по осям x и y
     collide_vertex : tuple[int, int]
         Вершина, относительно которой рассчитывается положение объекта на карте
+    x, y : int, int
+        Координаты
+    dead : bool
+        Мертв / нет
 
     Методы
     ------
@@ -154,7 +158,9 @@ class MovingObject(AnimatedObject):
     get_right_down_cell() :
         Возвращает клетку, в которой находится правый нижний угол объекта
     get_center_cell() :
-        Возвращает клетку, в которой находится центр объекта.
+        Возвращает клетку, в которой находится центр объекта
+    get_center_coordinates() :
+        Возвращает координаты центра объекта
     """
 
     def __init__(self, x: int, y: int, filename: str) -> None:
@@ -372,7 +378,11 @@ class Player(MovingObject):
     do_slash : bool
         Показывает, нужно ли начинать анимацию слэша, или же нет
     health : int
-        Количество здоровья игрока;
+        Количество здоровья игрока
+    can_tp : bool
+        Может ли игрок телепортироваться, или нет
+    dead : bool
+        Игрок мёртв / жив
     inventory : Inventory
         Объект, в котором содержатся предметы из инвентаря игрока,
         а так же отрисовываются сердечки, обозначающие здоровье.
@@ -550,7 +560,9 @@ class Inventory:
     thrown_elem : None | str
         Путь к картинке выкинутого объекта
     current_item : int
-        Показывает индекс выбранного предмета в инвентаре.
+        Показывает индекс выбранного предмета в инвентаре
+    tick_now : int
+        Тик в данный момент
 
     Методы
     ------
@@ -575,7 +587,6 @@ class Inventory:
         self.throwing = None
         self.thrown_elem = None
         self.current_item = 0
-        self.delta = 100
         self.tick_now = pg.time.get_ticks()
 
     def draw(self) -> None:
@@ -758,6 +769,48 @@ class Castle:
 
 
 class Monster(MovingObject, Castle):
+    """
+    Атрибуты
+    ------
+    current_slash : int
+        Показывает текущий индекс картинки удара
+    slash_tick : int
+        Тик, на котором окончился удар
+    do_slash : bool
+        Показывает, возможно ли сделать удар
+    health : int
+        Количество здоровья
+    current_direction : tuple[int, int]
+        Показывает знаки направлений движения по осям
+    view_radius : int
+        Радиус обзора
+    go_to_player : bool
+        Нужно ли идти к игроку
+    x, y : float, float
+        Координаты
+    hit_delay : int
+        Задержка между ударами
+    last : int
+        Тик окончания последнего удара
+    collided : bool
+        Пересекается ли с игроком
+    dead : bool
+        Жив / мёртв
+    can_change_pic : bool
+        Может ли менять группу кадров
+
+    Методы
+    ------
+    check() :
+        Проверяет все показатели противника
+    move_to_player() :
+        Движение к игроку
+    hit() :
+        Удар по игроку
+    die() :
+        Умереть
+    """
+
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__(x, y, filename)
         self.current_slash = -1
@@ -767,7 +820,6 @@ class Monster(MovingObject, Castle):
         self.current_direction = 1, 0
         self.view_radius = 100
         self.go_to_player = False
-        self.start_x, _ = self.pos
         self.x, self.y = self.pos
         self.hit_delay = 500 if not auto else 300
         self.last = 0
@@ -886,12 +938,16 @@ class Button:
         Нужно ли убирать паузу или нет.
         (Если кнопка - кнопка паузы)
     clicks : int
-        Количество нажатий на кнопку.
+        Количество нажатий на кнопку
+    on : bool
+        Включен ли щёлкающий звук кнопки, или нет
 
     Методы
     ------
     draw() :
         Отрисовывает кнопку
+    draw_changing_pic() :
+        Изменить группу картинок
     update() :
         Меняет изображение кнопки в зависимости от количества нажатий и
         увеличивает или уменьшает y_pos.
@@ -914,8 +970,6 @@ class Button:
         self.pressed = False
         self.unpause = True
         self.clicks = 0
-        self.flag = False
-        self.count_selects = 0
         self.on = False
 
     def draw(self) -> None:
@@ -1000,6 +1054,8 @@ class ScreenDesigner:
         Кнопка, запускающая следующий уровень
     menu_button : Button
         Кнопка, выхода на стартовый экран
+    settings_button : Button
+        Кнопка меню настроек
     exit_button : Button
         Кнопка, выхода из игры
 
@@ -1007,6 +1063,8 @@ class ScreenDesigner:
     ------
     render_start_window() :
         Отрисовка стартового экрана
+    render_settings_window() :
+        Отрисовка меню настроек
     render_pause_window() :
         Отрисовка экрана паузы
     render_finish_window() :
@@ -1019,6 +1077,8 @@ class ScreenDesigner:
         На экране после прохождения уровней отрисовка предметов инвентаря
     draw_next_button() :
         Отрисовка кнопки для перехода на следующий уровень
+    draw_settings_button() :
+        Отрисовка кнопки меню настроек
     draw_menu_button() :
         Отрисовка кнопки для перехода на стартовый экран
     draw_title() :
@@ -1029,6 +1089,8 @@ class ScreenDesigner:
         Отрисовка кнопки для перехода на экран выбора уровней
     draw_exit_button() :
         Отрисовка кнопки для выхода из игры
+    draw_lock() :
+        Отрисовывает замки на кнопках уровней
     """
 
     def __init__(self) -> None:
@@ -1226,6 +1288,32 @@ class ScreenDesigner:
 
 
 class InputBox:
+    """
+    Класс, реализующий поле ввода в меню настроек
+
+    Атрибуты
+    ------
+    rect : Rect
+        Координаты прямоугольника окна
+    color_inactive : Color
+        Цвет поля, если оно не выбрано
+    color_active : Color
+        Цвет поля, если оно выбрано
+    text : str
+        Текст в поле
+    font : Font
+        Шрифт текста в поле
+    active : bool
+        Активно ли поле, или же нет
+
+    Методы
+    ------
+    handle_event() :
+        Обрабатывает события нажатия на поле и выбор клавиши для привязки
+    draw() :
+        Отрисовка поля
+    """
+
     def __init__(self, x, y, width, height, font_size):
         self.rect = pg.Rect(x, y, width, height)
         self.color_inactive = pg.Color('bisque3')
@@ -1272,6 +1360,48 @@ class InputBox:
 
 
 class Music:
+    """
+    Класс, реализующий проигрывание музыки в игре
+
+    Атрибуты
+    ------
+    slash_player_music : Sound
+        Звук удара мечом игрока
+    slash_monster_music : Sound
+        Звук удара мечом игрока
+    death_monster_music : Sound
+        Звук смерти монстра
+    use_current_item_music : Sound
+        Звук использования предмета
+    throw_item_music : Sound
+        Звук выбрасывания предмета
+    door_opened_music : Sound
+        Звук открытия двери
+    chest_opened_music : Sound
+        Звук открытия сундука
+    finish_window_music : Sound
+        Звук окончания уровня (пройден)
+    death_window_music : Sound
+        Звук окончания уровня (не пройден)
+    button_press_music : Sound
+        Звук наведения курсора на кнопку
+    level_window_music : Sound
+        Музыка в меню выбора уровня
+    start_window_music : Sound
+        Музыка в главном меню
+    pickup_coin_music : Sound
+        Звук подбора монетки
+    pickup_other_music : Sound
+        Звук подбора других предметов
+    list_music : list
+        Вся музыка
+
+    Методы
+    ------
+    change_all_volumes() :
+        Изменение громкости
+    """
+
     def __init__(self):
         self.slash_player_music = make_music_file('energichnyiy-rezkiy-vzmah-mechom.ogg')
         self.slash_monster_music = make_music_file('rezkiy-vzmah-mechom.ogg')
@@ -1295,18 +1425,24 @@ class Music:
         for j in self.list_music:
             j.set_volume(music)
 
-    def get_variables_list(self):
-        variables_list = []
-        for attr_name, attr_value in self.__dict__.items():
-            variables_list.append(attr_value)
-        return variables_list
 
+def make_music_file(file: str) -> pg.mixer.Sound:
+    """
+    Создание объекта Sound.
+    :param file: Имя звукового файла
+    :returns: Звук, используемый в pygame
+    """
 
-def make_music_file(file):
     return pg.mixer.Sound(f'music/{file}')
 
 
-def make_buffer(array):
+def make_buffer(array: bytes):
+    """
+    Обрезание звуковой дорожки
+    :param array: list
+    :returns: Обрезанная звуковая дорожка
+    """
+
     return pg.mixer.Sound(buffer=array)
 
 

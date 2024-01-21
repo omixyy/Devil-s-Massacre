@@ -1723,13 +1723,11 @@ def pause_window(pause_button: Button) -> None:
                     all_music.start_window_music.stop()
                     pause_button.clicks += 1
                 if pause_menu.menu_button.rect.collidepoint(evt.pos):
-                    all_music.start_window_music.stop()
                     start_window()
                 if pause_menu.exit_button.rect.collidepoint(evt.pos):
                     terminate()
                     break
                 if pause_menu.settings_button.rect.collidepoint(evt.pos):
-                    all_music.start_window_music.stop()
                     settings_window()
         pause_button.y_pos = 590
         if pause_button.unpause:

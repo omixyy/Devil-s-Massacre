@@ -211,8 +211,8 @@ class Torch(AnimatedObject):
 
 class Flag(AnimatedObject):
     """
-        Класс для анимирования флагов
-        """
+    Класс для анимирования флагов
+    """
 
     def __init__(self, x: int, y: int, filename: str) -> None:
         super().__init__([animated_sprites], FLAG_DIR, x, y, filename)
